@@ -1,11 +1,13 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 public enum EnemyState
 {
     Patrolling,
-    Following
+    Following,
+    Attacking
 }
 
 public class NewMonoBehaviourScript : MonoBehaviour
@@ -22,6 +24,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private float detectionRange = 5f;
     [SerializeField] private float viewAngle = 90f;
     [SerializeField] private float losePlayerTime = 3f;
+    [SerializeField] private float attackRange = 3f;
 
     private NavMeshAgent _agent;
     private Animator _animator;
@@ -59,6 +62,12 @@ public class NewMonoBehaviourScript : MonoBehaviour
             case EnemyState.Following:
                 FollowPlayer();
 
+                if (distanceToPlayer <= attackRange)
+                {
+                    _state = EnemyState.Attacking;
+                    StartCoroutine(RestartAfterDelay(0.5f)); // Half‑second delay
+                }
+
                 if (!CanSeePlayer())
                 {
                     _timeSincePlayerLost += Time.deltaTime;
@@ -74,13 +83,24 @@ public class NewMonoBehaviourScript : MonoBehaviour
                     _timeSincePlayerLost = 0f;
                 }
                 break;
+
+            case EnemyState.Attacking:
+                // Nothing needed — restart is already scheduled
+                break;
         }
 
         UpdateAnimations();
     }
 
+    private IEnumerator RestartAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
     private void FollowPlayer()
     {
+        _agent.isStopped = false;
         _agent.SetDestination(player.position);
     }
 
@@ -137,6 +157,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void UpdateAnimations()
     {
+        if (_animator == null) return;
+
         bool isWalking = _agent.velocity.sqrMagnitude > 0.01f;
         _animator.SetBool(IsWalking, isWalking);
     }
