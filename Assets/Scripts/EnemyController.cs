@@ -18,13 +18,16 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private Transform[] patrolPoints;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource chaseMusic;   // Assign in Inspector
+
     [Header("Settings")]
     [SerializeField] private float patrolWaitTime = 2f;
     [SerializeField] private float stopAtDistance = 0.5f;
     [SerializeField] private float detectionRange = 5f;
     [SerializeField] private float viewAngle = 90f;
     [SerializeField] private float losePlayerTime = 3f;
-    [SerializeField] private float attackRange = 3f;
+    [SerializeField] private float attackRange = 1.2f;
 
     private NavMeshAgent _agent;
     private Animator _animator;
@@ -56,6 +59,9 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 if (distanceToPlayer <= detectionRange && CanSeePlayer())
                 {
                     _state = EnemyState.Following;
+
+                    if (chaseMusic != null && !chaseMusic.isPlaying)
+                        chaseMusic.Play();
                 }
                 break;
 
@@ -65,7 +71,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 if (distanceToPlayer <= attackRange)
                 {
                     _state = EnemyState.Attacking;
-                    StartCoroutine(RestartAfterDelay(0.5f)); // Half‑second delay
+                    StartCoroutine(RestartAfterDelay(0.5f));
                 }
 
                 if (!CanSeePlayer())
@@ -76,6 +82,9 @@ public class NewMonoBehaviourScript : MonoBehaviour
                     {
                         _state = EnemyState.Patrolling;
                         GoToClosestPatrolPoint();
+
+                        if (chaseMusic != null && chaseMusic.isPlaying)
+                            chaseMusic.Stop();
                     }
                 }
                 else
@@ -85,7 +94,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 break;
 
             case EnemyState.Attacking:
-                // Nothing needed — restart is already scheduled
+                // Restart is already scheduled
                 break;
         }
 
