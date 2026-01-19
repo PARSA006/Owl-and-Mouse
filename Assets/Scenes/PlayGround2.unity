@@ -1585,6 +1585,7 @@ MonoBehaviour:
   detectionRange: 5
   viewAngle: 90
   losePlayerTime: 3
+  attackRange: 3
 --- !u!95 &1635082593
 Animator:
   serializedVersion: 7
