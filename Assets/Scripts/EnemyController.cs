@@ -21,7 +21,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource chaseMusic;
 
-    [Header("Vision Cones")]
+    [Header("Vision Cone Fade")]
     [SerializeField] private Renderer[] coneRenderers;
     [SerializeField] private float coneFadeSpeed = 3f;
 
@@ -43,35 +43,35 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private float losePlayerTime = 3f;
     [SerializeField] private float attackRange = 1.2f;
 
-    private NavMeshAgent _agent;
-    private Animator _animator;
-    private EnemyState _state = EnemyState.Patrolling;
-    private int _currentPatrolIndex;
-    private bool _isWaiting;
+    private NavMeshAgent agent;
+    private Animator animator;
+    private EnemyState state = EnemyState.Patrolling;
 
-    private Coroutine _coneFadeRoutine;
-    private Coroutine _accelRoutine;
-    private Coroutine _losePlayerRoutine;
+    private int patrolIndex;
+    private bool isWaiting;
 
-    // ⭐ Prevents chase acceleration from restarting
-    private bool hasStartedChase = false;
+    private Coroutine fadeRoutine;
+    private Coroutine accelRoutine;
+    private Coroutine loseRoutine;
+
+    private bool chaseStarted = false;
 
     private void Awake()
     {
-        _agent = GetComponent<NavMeshAgent>();
-        _animator = GetComponent<Animator>();
+        agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
     }
 
     private void Start()
     {
-        _agent.speed = patrolSpeed;
-        _agent.angularSpeed = turnSpeed;
-        _agent.updateRotation = false;
+        agent.speed = patrolSpeed;
+        agent.angularSpeed = turnSpeed;
+        agent.updateRotation = false;
 
-        _agent.autoBraking = false;
-        _agent.acceleration = 999f;
-        _agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
-        _agent.stoppingDistance = 0f;
+        agent.autoBraking = false;
+        agent.acceleration = 999f;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
+        agent.stoppingDistance = 0f;
 
         GoToNextPatrolPoint();
         FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
@@ -79,9 +79,9 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void Update()
     {
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        float dist = Vector3.Distance(transform.position, player.position);
 
-        switch (_state)
+        switch (state)
         {
             case EnemyState.Patrolling:
                 Patrol();
@@ -89,18 +89,16 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
             case EnemyState.Following:
                 FollowPlayerManual();
-                if (distanceToPlayer <= attackRange)
+
+                if (dist <= attackRange)
                 {
-                    _state = EnemyState.Attacking;
+                    state = EnemyState.Attacking;
                     StartCoroutine(RestartAfterDelay(0.5f));
                 }
                 break;
-
-            case EnemyState.Attacking:
-                break;
         }
 
-        if (_state == EnemyState.Following)
+        if (state == EnemyState.Following)
             RotateTowardPlayer();
         else
             RotateTowardMovementDirection();
@@ -113,57 +111,48 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private void RotateTowardPlayer()
     {
-        Vector3 direction = (player.position - transform.position).normalized;
-        direction.y = 0f;
+        Vector3 dir = (player.position - transform.position).normalized;
+        dir.y = 0f;
 
-        if (direction.sqrMagnitude > 0.01f)
+        if (dir.sqrMagnitude > 0.01f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRotation,
-                turnSpeed * Time.deltaTime
-            );
+            Quaternion target = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * Time.deltaTime);
         }
     }
 
     private void RotateTowardMovementDirection()
     {
-        if (_agent.velocity.sqrMagnitude > 0.1f)
+        if (agent.velocity.sqrMagnitude > 0.1f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(_agent.velocity.normalized);
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRotation,
-                turnSpeed * Time.deltaTime
-            );
+            Quaternion target = Quaternion.LookRotation(agent.velocity.normalized);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * Time.deltaTime);
         }
     }
 
     // -----------------------------
-    // Vision Cone Detection
+    // Detection (called by SkyLightCone)
     // -----------------------------
     public void PlayerEnteredCone()
     {
-        if (_state == EnemyState.Attacking) return;
+        if (state == EnemyState.Attacking) return;
 
-        _state = EnemyState.Following;
+        state = EnemyState.Following;
 
-        // ⭐ Only start chase acceleration ONCE
-        if (!hasStartedChase)
+        if (!chaseStarted)
         {
-            hasStartedChase = true;
+            chaseStarted = true;
 
-            if (_accelRoutine != null)
-                StopCoroutine(_accelRoutine);
+            if (accelRoutine != null)
+                StopCoroutine(accelRoutine);
 
-            _accelRoutine = StartCoroutine(AccelerateToChaseStartSpeed());
+            accelRoutine = StartCoroutine(AccelerateToChaseStartSpeed());
         }
 
-        if (_losePlayerRoutine != null)
+        if (loseRoutine != null)
         {
-            StopCoroutine(_losePlayerRoutine);
-            _losePlayerRoutine = null;
+            StopCoroutine(loseRoutine);
+            loseRoutine = null;
         }
 
         if (!chaseMusic.isPlaying)
@@ -174,48 +163,39 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     public void PlayerExitedCone()
     {
-        if (_state != EnemyState.Following) return;
+        if (state != EnemyState.Following) return;
 
-        if (_losePlayerRoutine != null)
-            StopCoroutine(_losePlayerRoutine);
+        if (loseRoutine != null)
+            StopCoroutine(loseRoutine);
 
-        _losePlayerRoutine = StartCoroutine(LosePlayerRoutine());
+        loseRoutine = StartCoroutine(LosePlayerRoutine());
     }
 
-    // -----------------------------
-    // ⭐ FIXED LosePlayerRoutine
-    // -----------------------------
     private IEnumerator LosePlayerRoutine()
     {
         float timer = 0f;
 
         while (timer < losePlayerTime)
         {
-            // If player becomes visible again, cancel immediately
-            if (_state == EnemyState.Following)
-                yield break;
-
             timer += Time.deltaTime;
             yield return null;
         }
 
-        // Only give up if STILL not following
-        if (_state != EnemyState.Following)
+        if (state == EnemyState.Following)
         {
-            _state = EnemyState.Patrolling;
-
-            hasStartedChase = false; // ⭐ Reset chase flag
+            state = EnemyState.Patrolling;
+            chaseStarted = false;
 
             if (chaseMusic.isPlaying)
                 chaseMusic.Stop();
 
             FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
 
-            _agent.speed = patrolSpeed;
+            agent.speed = patrolSpeed;
             GoToClosestPatrolPoint();
         }
 
-        _losePlayerRoutine = null;
+        loseRoutine = null;
     }
 
     // -----------------------------
@@ -223,17 +203,17 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private IEnumerator AccelerateToChaseStartSpeed()
     {
-        float startSpeed = patrolSpeed;
+        float start = patrolSpeed;
         float t = 0f;
 
         while (t < 1f)
         {
             t += Time.deltaTime / accelerationTime;
-            _agent.speed = Mathf.Lerp(startSpeed, chaseStartSpeed, t);
+            agent.speed = Mathf.Lerp(start, chaseStartSpeed, t);
             yield return null;
         }
 
-        _agent.speed = chaseStartSpeed;
+        agent.speed = chaseStartSpeed;
     }
 
     // -----------------------------
@@ -241,15 +221,15 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private void FollowPlayerManual()
     {
-        _agent.isStopped = true;
+        agent.isStopped = true;
 
-        Vector3 direction = (player.position - transform.position).normalized;
-        direction.y = 0f;
+        Vector3 dir = (player.position - transform.position).normalized;
+        dir.y = 0f;
 
-        if (_agent.speed < maxChaseSpeed)
-            _agent.speed += chaseAccelerationRate * Time.deltaTime;
+        if (agent.speed < maxChaseSpeed)
+            agent.speed += chaseAccelerationRate * Time.deltaTime;
 
-        transform.position += direction * _agent.speed * Time.deltaTime;
+        transform.position += dir * agent.speed * Time.deltaTime;
     }
 
     // -----------------------------
@@ -257,53 +237,53 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private void Patrol()
     {
-        _agent.isStopped = false;
+        agent.isStopped = false;
 
-        if (_isWaiting) return;
+        if (isWaiting) return;
 
-        if (!_agent.pathPending && _agent.remainingDistance <= stopAtDistance)
+        if (!agent.pathPending && agent.remainingDistance <= stopAtDistance)
             StartCoroutine(WaitAtPatrolPoint());
     }
 
     private IEnumerator WaitAtPatrolPoint()
     {
-        _isWaiting = true;
-        _agent.isStopped = true;
+        isWaiting = true;
+        agent.isStopped = true;
 
         yield return new WaitForSeconds(patrolWaitTime);
 
-        _agent.isStopped = false;
+        agent.isStopped = false;
         GoToNextPatrolPoint();
-        _isWaiting = false;
+        isWaiting = false;
     }
 
     private void GoToClosestPatrolPoint()
     {
         if (patrolPoints.Length == 0) return;
 
-        int closestIndex = 0;
-        float closestDistance = float.MaxValue;
+        int closest = 0;
+        float bestDist = float.MaxValue;
 
         for (int i = 0; i < patrolPoints.Length; i++)
         {
-            float distance = Vector3.Distance(transform.position, patrolPoints[i].position);
-            if (distance < closestDistance)
+            float d = Vector3.Distance(transform.position, patrolPoints[i].position);
+            if (d < bestDist)
             {
-                closestDistance = distance;
-                closestIndex = i;
+                bestDist = d;
+                closest = i;
             }
         }
 
-        _currentPatrolIndex = closestIndex;
-        _agent.SetDestination(patrolPoints[_currentPatrolIndex].position);
+        patrolIndex = closest;
+        agent.SetDestination(patrolPoints[patrolIndex].position);
     }
 
     private void GoToNextPatrolPoint()
     {
         if (patrolPoints.Length == 0) return;
 
-        _agent.SetDestination(patrolPoints[_currentPatrolIndex].position);
-        _currentPatrolIndex = (_currentPatrolIndex + 1) % patrolPoints.Length;
+        agent.SetDestination(patrolPoints[patrolIndex].position);
+        patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
     }
 
     // -----------------------------
@@ -311,13 +291,13 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private void UpdateAnimations()
     {
-        if (_animator == null) return;
+        if (animator == null) return;
 
-        bool isWalking = _state == EnemyState.Following
+        bool walking = state == EnemyState.Following
             ? true
-            : _agent.velocity.sqrMagnitude > 0.01f;
+            : agent.velocity.sqrMagnitude > 0.01f;
 
-        _animator.SetBool(IsWalking, isWalking);
+        animator.SetBool(IsWalking, walking);
     }
 
     // -----------------------------
@@ -332,39 +312,29 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     // Vision Cone Fade
     // -----------------------------
-    private void FadeConeToColor(Color targetColor)
+    private void FadeConeToColor(Color target)
     {
-        if (_coneFadeRoutine != null)
-            StopCoroutine(_coneFadeRoutine);
+        if (fadeRoutine != null)
+            StopCoroutine(fadeRoutine);
 
-        _coneFadeRoutine = StartCoroutine(FadeConeRoutine(targetColor));
+        fadeRoutine = StartCoroutine(FadeConeRoutine(target));
     }
 
-    private IEnumerator FadeConeRoutine(Color targetColor)
+    private IEnumerator FadeConeRoutine(Color target)
     {
-        Color[] startColors = new Color[coneRenderers.Length];
+        Color[] start = new Color[coneRenderers.Length];
 
         for (int i = 0; i < coneRenderers.Length; i++)
-        {
-            if (coneRenderers[i] != null)
-                startColors[i] = coneRenderers[i].material.GetColor("_BaseColor");
-        }
+            start[i] = coneRenderers[i].material.GetColor("_BaseColor");
 
         float t = 0f;
+
         while (t < 1f)
         {
             t += Time.deltaTime * coneFadeSpeed;
 
             for (int i = 0; i < coneRenderers.Length; i++)
-            {
-                if (coneRenderers[i] != null)
-                {
-                    coneRenderers[i].material.SetColor(
-                        "_BaseColor",
-                        Color.Lerp(startColors[i], targetColor, t)
-                    );
-                }
-            }
+                coneRenderers[i].material.SetColor("_BaseColor", Color.Lerp(start[i], target, t));
 
             yield return null;
         }
