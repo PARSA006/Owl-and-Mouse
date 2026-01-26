@@ -7,7 +7,6 @@ public enum EnemyState
 {
     Patrolling,
     Following,
-    Searching,
     Attacking
 }
 
@@ -44,10 +43,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private float losePlayerTime = 3f;
     [SerializeField] private float attackRange = 1.2f;
 
-    [Header("Search Settings")]
-    [SerializeField] private float searchDuration = 4f;
-    [SerializeField] private float searchSpinSpeed = 120f;
-
     private NavMeshAgent agent;
     private Animator animator;
     private EnemyState state = EnemyState.Patrolling;
@@ -61,9 +56,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private bool chaseStarted = false;
     private bool playerInCone = false;
-
-    private Vector3 lastKnownPlayerPos;
-    private float searchTimer = 0f;
 
     private void Awake()
     {
@@ -79,7 +71,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
         agent.autoBraking = false;
         agent.acceleration = 999f;
-        agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         agent.stoppingDistance = 0f;
 
         GoToNextPatrolPoint();
@@ -97,17 +89,13 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 break;
 
             case EnemyState.Following:
-                FollowPlayerManual();
+                FollowPlayer();
 
                 if (dist <= attackRange && playerInCone)
                 {
                     state = EnemyState.Attacking;
                     StartCoroutine(RestartAfterDelay(0.5f));
                 }
-                break;
-
-            case EnemyState.Searching:
-                Search();
                 break;
         }
 
@@ -153,7 +141,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         if (state == EnemyState.Attacking) return;
 
         state = EnemyState.Following;
-        lastKnownPlayerPos = player.position;
 
         if (!chaseStarted)
         {
@@ -201,52 +188,21 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
         if (state == EnemyState.Following)
         {
-            state = EnemyState.Searching;
-            searchTimer = 0f;
+            state = EnemyState.Patrolling;
+            chaseStarted = false;
 
             if (chaseMusic.isPlaying)
                 chaseMusic.Stop();
 
-            FadeConeToColor(new Color(1f, 0.5f, 0f, 0.3f));
-
-            agent.speed = patrolSpeed;
-            agent.isStopped = false;
-
-            agent.SetDestination(lastKnownPlayerPos);
-        }
-
-        loseRoutine = null;
-    }
-    // -----------------------------
-    // Search Behavior
-    // -----------------------------
-    private void Search()
-    {
-        // Move to last known position first
-        if (Vector3.Distance(transform.position, lastKnownPlayerPos) > 0.5f)
-        {
-            agent.SetDestination(lastKnownPlayerPos);
-            return;
-        }
-
-        // Stop moving and spin
-        agent.isStopped = true;
-
-        transform.Rotate(Vector3.up, searchSpinSpeed * Time.deltaTime);
-
-        searchTimer += Time.deltaTime;
-
-        if (searchTimer >= searchDuration)
-        {
-            state = EnemyState.Patrolling;
-            chaseStarted = false;
-
             FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
-            agent.isStopped = false;
+
             agent.speed = patrolSpeed;
+            agent.isStopped = false;
 
             GoToClosestPatrolPoint();
         }
+
+        loseRoutine = null;
     }
 
     // -----------------------------
@@ -268,19 +224,15 @@ public class NewMonoBehaviourScript : MonoBehaviour
     }
 
     // -----------------------------
-    // Manual Chase Movement
+    // Chase using NavMeshAgent
     // -----------------------------
-    private void FollowPlayerManual()
+    private void FollowPlayer()
     {
-        agent.isStopped = true;
-
-        Vector3 dir = (player.position - transform.position).normalized;
-        dir.y = 0f;
+        agent.isStopped = false;
+        agent.SetDestination(player.position);
 
         if (agent.speed < maxChaseSpeed)
             agent.speed += chaseAccelerationRate * Time.deltaTime;
-
-        transform.position += dir * agent.speed * Time.deltaTime;
     }
 
     // -----------------------------
