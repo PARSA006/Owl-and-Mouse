@@ -1,17 +1,24 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class nextscene : MonoBehaviour
 {
     public string scenename;
+    public int requiredStrawberries = 5; // how many needed to unlock
+    public PlayerInventory playerInventory; // reference to the player's inventory
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            SceneManager.LoadScene(scenename);
+            if (playerInventory.strawberries >= requiredStrawberries)
+            {
+                SceneManager.LoadScene(scenename);
+            }
+            else
+            {
+                Debug.Log("Door is locked! Need more strawberries.");
+            }
         }
     }
 }

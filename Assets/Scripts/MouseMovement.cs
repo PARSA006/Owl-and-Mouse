@@ -22,6 +22,24 @@ public class PlayerMovement : MonoBehaviour
 
     private bool canMove = true;
 
+    // Singleton instance so we don't duplicate the player
+    private static PlayerMovement instance;
+
+    private void Awake()
+    {
+        // Prevent duplicates when loading new scenes
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        instance = this;
+
+        // Make the player persist across scenes
+        DontDestroyOnLoad(gameObject);
+    }
+
     void Start()
     {
         characterController = GetComponent<CharacterController>();
@@ -59,7 +77,6 @@ public class PlayerMovement : MonoBehaviour
             characterController.height = crouchHeight;
             walkSpeed = crouchSpeed;
             runSpeed = crouchSpeed;
-
         }
         else
         {
