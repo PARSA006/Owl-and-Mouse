@@ -57,15 +57,24 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (SaveManager.HasSave())
+        characterController.enabled = false;
+
+        // 1. Teleport override
+        if (TeleportData.useTeleportPosition)
+        {
+            transform.position = TeleportData.spawnPosition;
+            TeleportData.useTeleportPosition = false;
+        }
+        // 2. Normal checkpoint load
+        else if (SaveManager.HasSave())
         {
             Vector3 savedPos = SaveManager.LoadPlayerPosition();
-
-            characterController.enabled = false;
             transform.position = savedPos;
-            characterController.enabled = true;
         }
+
+        characterController.enabled = true;
     }
+
 
     private void Update()
     {

@@ -62,7 +62,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
 
-        // Subscribe to scene load events so we can reacquire the player
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
@@ -73,21 +72,18 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Try to find the player again after scene load
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-            player = playerObj.transform;
+        StartCoroutine(DelayedPlayerFind());
+    }
+
+    private IEnumerator DelayedPlayerFind()
+    {
+        yield return null;
+        TryFindPlayer();
     }
 
     private void Start()
     {
-        // If player reference is missing at start, try to find it
-        if (player == null)
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-                player = playerObj.transform;
-        }
+        TryFindPlayer();
 
         agent.speed = patrolSpeed;
         agent.angularSpeed = turnSpeed;
@@ -104,9 +100,11 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void Update()
     {
-        // Safety check: if player is missing, do nothing
         if (player == null)
+        {
+            TryFindPlayer();
             return;
+        }
 
         float dist = Vector3.Distance(transform.position, player.position);
 
@@ -133,6 +131,13 @@ public class NewMonoBehaviourScript : MonoBehaviour
             RotateTowardMovementDirection();
 
         UpdateAnimations();
+    }
+
+    private void TryFindPlayer()
+    {
+        var playerObj = FindFirstObjectByType<PlayerMovement>();
+        if (playerObj != null)
+            player = playerObj.transform;
     }
 
     // -----------------------------
