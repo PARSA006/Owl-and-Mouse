@@ -61,10 +61,30 @@ public class NewMonoBehaviourScript : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        StartCoroutine(DelayedPlayerFind());
+    }
+
+    private IEnumerator DelayedPlayerFind()
+    {
+        yield return null;
+        TryFindPlayer();
     }
 
     private void Start()
     {
+        TryFindPlayer();
+
         agent.speed = patrolSpeed;
         agent.angularSpeed = turnSpeed;
         agent.updateRotation = false;
@@ -80,6 +100,12 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void Update()
     {
+        if (player == null)
+        {
+            TryFindPlayer();
+            return;
+        }
+
         float dist = Vector3.Distance(transform.position, player.position);
 
         switch (state)
@@ -107,11 +133,20 @@ public class NewMonoBehaviourScript : MonoBehaviour
         UpdateAnimations();
     }
 
+    private void TryFindPlayer()
+    {
+        var playerObj = FindFirstObjectByType<PlayerMovement>();
+        if (playerObj != null)
+            player = playerObj.transform;
+    }
+
     // -----------------------------
     // Rotation
     // -----------------------------
     private void RotateTowardPlayer()
     {
+        if (player == null) return;
+
         Vector3 dir = (player.position - transform.position).normalized;
         dir.y = 0f;
 
@@ -228,6 +263,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private void FollowPlayer()
     {
+        if (player == null) return;
+
         agent.isStopped = false;
         agent.SetDestination(player.position);
 

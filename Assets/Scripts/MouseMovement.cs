@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -22,14 +23,60 @@ public class PlayerMovement : MonoBehaviour
 
     private bool canMove = true;
 
-    void Start()
+    private static PlayerMovement instance;
+
+    private void Awake()
     {
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        // Initialize controller BEFORE scene load events
         characterController = GetComponent<CharacterController>();
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void Start()
+    {
+        // Removed duplicate controller assignment here
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    void Update()
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        characterController.enabled = false;
+
+        // 1. Teleport override
+        if (TeleportData.useTeleportPosition)
+        {
+            transform.position = TeleportData.spawnPosition;
+            TeleportData.useTeleportPosition = false;
+        }
+        // 2. Normal checkpoint load
+        else if (SaveManager.HasSave())
+        {
+            Vector3 savedPos = SaveManager.LoadPlayerPosition();
+            transform.position = savedPos;
+        }
+
+        characterController.enabled = true;
+    }
+
+
+    private void Update()
     {
         Vector3 forward = transform.TransformDirection(Vector3.forward);
         Vector3 right = transform.TransformDirection(Vector3.right);
@@ -59,7 +106,6 @@ public class PlayerMovement : MonoBehaviour
             characterController.height = crouchHeight;
             walkSpeed = crouchSpeed;
             runSpeed = crouchSpeed;
-
         }
         else
         {

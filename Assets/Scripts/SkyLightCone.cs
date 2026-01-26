@@ -1,4 +1,9 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
+
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class SkyLightCone : MonoBehaviour
@@ -11,17 +16,25 @@ public class SkyLightCone : MonoBehaviour
     [Header("Detection")]
     public LayerMask environmentMask;
     public LayerMask playerMask;
-    public NewMonoBehaviourScript enemyAI;
+
+    private NewMonoBehaviourScript enemyAI;
 
     private Mesh mesh;
     private bool playerVisible;
-    private bool wasPlayerVisible = false;   // ⭐ NEW
+    private bool wasPlayerVisible = false;
 
-    private void Awake()
+    private IEnumerator Start()
     {
         mesh = new Mesh();
         mesh.name = "SkyLightConeMesh";
         GetComponent<MeshFilter>().mesh = mesh;
+
+        // Wait 1 frame so the enemy has time to spawn in the new scene
+        yield return null;
+
+        enemyAI = FindFirstObjectByType<NewMonoBehaviourScript>();
+
+        Debug.Log("SkyLightCone Start() — enemyAI found: " + (enemyAI != null));
     }
 
     private void LateUpdate()
@@ -41,7 +54,6 @@ public class SkyLightCone : MonoBehaviour
         int[] triangles = new int[segments * 3];
 
         vertices[0] = Vector3.zero;
-
         playerVisible = false;
 
         for (int i = 0; i <= segments; i++)
@@ -63,8 +75,14 @@ public class SkyLightCone : MonoBehaviour
             {
                 hitPoint = hit.point;
 
+                // DEBUG: What did the cone hit?
+                Debug.Log("Cone hit: " + hit.collider.name + " (Layer: " + LayerMask.LayerToName(hit.collider.gameObject.layer) + ")");
+
                 if (((1 << hit.collider.gameObject.layer) & playerMask) != 0)
+                {
                     playerVisible = true;
+                    Debug.Log("Cone sees PLAYER in scene: " + gameObject.scene.name);
+                }
             }
 
             vertices[i + 1] = transform.InverseTransformPoint(hitPoint);
@@ -88,13 +106,20 @@ public class SkyLightCone : MonoBehaviour
 
     private void HandleDetection()
     {
-        // ⭐ Only fire events when visibility CHANGES
+        if (enemyAI == null)
+        {
+            Debug.LogWarning("SkyLightCone has NO enemyAI in scene: " + gameObject.scene.name);
+            return;
+        }
+
         if (playerVisible && !wasPlayerVisible)
         {
+            Debug.Log("PlayerEnteredCone fired");
             enemyAI.PlayerEnteredCone();
         }
         else if (!playerVisible && wasPlayerVisible)
         {
+            Debug.Log("PlayerExitedCone fired");
             enemyAI.PlayerExitedCone();
         }
 
