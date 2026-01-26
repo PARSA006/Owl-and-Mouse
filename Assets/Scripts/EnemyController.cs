@@ -7,6 +7,7 @@ public enum EnemyState
 {
     Patrolling,
     Following,
+    Searching,
     Attacking
 }
 
@@ -43,6 +44,10 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private float losePlayerTime = 3f;
     [SerializeField] private float attackRange = 1.2f;
 
+    [Header("Search Settings")]
+    [SerializeField] private float searchDuration = 4f;
+    [SerializeField] private float searchSpinSpeed = 120f;
+
     private NavMeshAgent agent;
     private Animator animator;
     private EnemyState state = EnemyState.Patrolling;
@@ -55,6 +60,10 @@ public class NewMonoBehaviourScript : MonoBehaviour
     private Coroutine loseRoutine;
 
     private bool chaseStarted = false;
+    private bool playerInCone = false;
+
+    private Vector3 lastKnownPlayerPos;
+    private float searchTimer = 0f;
 
     private void Awake()
     {
@@ -90,17 +99,21 @@ public class NewMonoBehaviourScript : MonoBehaviour
             case EnemyState.Following:
                 FollowPlayerManual();
 
-                if (dist <= attackRange)
+                if (dist <= attackRange && playerInCone)
                 {
                     state = EnemyState.Attacking;
                     StartCoroutine(RestartAfterDelay(0.5f));
                 }
                 break;
+
+            case EnemyState.Searching:
+                Search();
+                break;
         }
 
         if (state == EnemyState.Following)
             RotateTowardPlayer();
-        else
+        else if (state == EnemyState.Patrolling)
             RotateTowardMovementDirection();
 
         UpdateAnimations();
@@ -135,9 +148,12 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     public void PlayerEnteredCone()
     {
+        playerInCone = true;
+
         if (state == EnemyState.Attacking) return;
 
         state = EnemyState.Following;
+        lastKnownPlayerPos = player.position;
 
         if (!chaseStarted)
         {
@@ -163,6 +179,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     public void PlayerExitedCone()
     {
+        playerInCone = false;
+
         if (state != EnemyState.Following) return;
 
         if (loseRoutine != null)
@@ -183,19 +201,52 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
         if (state == EnemyState.Following)
         {
-            state = EnemyState.Patrolling;
-            chaseStarted = false;
+            state = EnemyState.Searching;
+            searchTimer = 0f;
 
             if (chaseMusic.isPlaying)
                 chaseMusic.Stop();
 
-            FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
+            FadeConeToColor(new Color(1f, 0.5f, 0f, 0.3f));
 
             agent.speed = patrolSpeed;
-            GoToClosestPatrolPoint();
+            agent.isStopped = false;
+
+            agent.SetDestination(lastKnownPlayerPos);
         }
 
         loseRoutine = null;
+    }
+    // -----------------------------
+    // Search Behavior
+    // -----------------------------
+    private void Search()
+    {
+        // Move to last known position first
+        if (Vector3.Distance(transform.position, lastKnownPlayerPos) > 0.5f)
+        {
+            agent.SetDestination(lastKnownPlayerPos);
+            return;
+        }
+
+        // Stop moving and spin
+        agent.isStopped = true;
+
+        transform.Rotate(Vector3.up, searchSpinSpeed * Time.deltaTime);
+
+        searchTimer += Time.deltaTime;
+
+        if (searchTimer >= searchDuration)
+        {
+            state = EnemyState.Patrolling;
+            chaseStarted = false;
+
+            FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
+            agent.isStopped = false;
+            agent.speed = patrolSpeed;
+
+            GoToClosestPatrolPoint();
+        }
     }
 
     // -----------------------------
