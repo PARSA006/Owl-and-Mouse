@@ -1,12 +1,12 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class SkyLightCone : MonoBehaviour
 {
     [Header("Cone Shape")]
-    public float height = 10f;        // Base height before scale
-    public float radius = 5f;         // Base radius before scale
-    public int segments = 40;         // Smoothness
+    public float height = 10f;
+    public float radius = 5f;
+    public int segments = 40;
 
     [Header("Detection")]
     public LayerMask environmentMask;
@@ -15,6 +15,7 @@ public class SkyLightCone : MonoBehaviour
 
     private Mesh mesh;
     private bool playerVisible;
+    private bool wasPlayerVisible = false;   // ⭐ NEW
 
     private void Awake()
     {
@@ -39,7 +40,7 @@ public class SkyLightCone : MonoBehaviour
         Vector3[] vertices = new Vector3[vertexCount];
         int[] triangles = new int[segments * 3];
 
-        vertices[0] = Vector3.zero; // tip of the cone (local space)
+        vertices[0] = Vector3.zero;
 
         playerVisible = false;
 
@@ -47,20 +48,17 @@ public class SkyLightCone : MonoBehaviour
         {
             float angle = (i / (float)segments) * Mathf.PI * 2f;
 
-            // Local base circle position
             Vector3 localCirclePos = new Vector3(
                 Mathf.Cos(angle) * scaledRadius,
                 -scaledHeight,
                 Mathf.Sin(angle) * scaledRadius
             );
 
-            // Convert to world direction
             Vector3 worldCirclePos = transform.TransformPoint(localCirclePos);
             Vector3 worldDir = (worldCirclePos - origin).normalized;
 
             Vector3 hitPoint = origin + worldDir * scaledHeight;
 
-            // Raycast for clipping
             if (Physics.Raycast(origin, worldDir, out RaycastHit hit, scaledHeight, environmentMask | playerMask))
             {
                 hitPoint = hit.point;
@@ -69,11 +67,9 @@ public class SkyLightCone : MonoBehaviour
                     playerVisible = true;
             }
 
-            // Convert back to local space
             vertices[i + 1] = transform.InverseTransformPoint(hitPoint);
         }
 
-        // Build triangles
         for (int i = 0; i < segments; i++)
         {
             int v = i + 1;
@@ -92,9 +88,16 @@ public class SkyLightCone : MonoBehaviour
 
     private void HandleDetection()
     {
-        if (playerVisible)
+        // ⭐ Only fire events when visibility CHANGES
+        if (playerVisible && !wasPlayerVisible)
+        {
             enemyAI.PlayerEnteredCone();
-        else
+        }
+        else if (!playerVisible && wasPlayerVisible)
+        {
             enemyAI.PlayerExitedCone();
+        }
+
+        wasPlayerVisible = playerVisible;
     }
 }
