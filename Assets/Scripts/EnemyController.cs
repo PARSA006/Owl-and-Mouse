@@ -61,10 +61,34 @@ public class NewMonoBehaviourScript : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+
+        // Subscribe to scene load events so we can reacquire the player
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Try to find the player again after scene load
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+            player = playerObj.transform;
     }
 
     private void Start()
     {
+        // If player reference is missing at start, try to find it
+        if (player == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                player = playerObj.transform;
+        }
+
         agent.speed = patrolSpeed;
         agent.angularSpeed = turnSpeed;
         agent.updateRotation = false;
@@ -80,6 +104,10 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void Update()
     {
+        // Safety check: if player is missing, do nothing
+        if (player == null)
+            return;
+
         float dist = Vector3.Distance(transform.position, player.position);
 
         switch (state)
@@ -112,6 +140,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private void RotateTowardPlayer()
     {
+        if (player == null) return;
+
         Vector3 dir = (player.position - transform.position).normalized;
         dir.y = 0f;
 
@@ -228,6 +258,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
     // -----------------------------
     private void FollowPlayer()
     {
+        if (player == null) return;
+
         agent.isStopped = false;
         agent.SetDestination(player.position);
 

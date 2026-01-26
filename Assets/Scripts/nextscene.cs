@@ -4,14 +4,21 @@ using UnityEngine.SceneManagement;
 public class nextscene : MonoBehaviour
 {
     public string scenename;
-    public int requiredStrawberries = 5; // how many needed to unlock
-    public PlayerInventory playerInventory; // reference to the player's inventory
+    public int requiredStrawberries = 5;
+
+    private PlayerInventory playerInventory;
+
+    private void Start()
+    {
+        // New Unity API — replaces FindObjectOfType
+        playerInventory = FindFirstObjectByType<PlayerInventory>();
+    }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            if (playerInventory.strawberries >= requiredStrawberries)
+            if (playerInventory != null && playerInventory.strawberries >= requiredStrawberries)
             {
                 SceneManager.LoadScene(scenename);
             }

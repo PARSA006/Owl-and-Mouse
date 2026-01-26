@@ -1,30 +1,23 @@
 using UnityEngine;
-using UnityEngine.Events;
 
 public class PlayerInventory : MonoBehaviour
 {
     public int strawberries = 0;
 
-    public UnityEvent<int> OnStrawberryCountChanged;
-
-    private static PlayerInventory instance;
-
-    private void Awake()
+    private void Start()
     {
-        // If an instance already exists, destroy this duplicate
-        if (instance != null && instance != this)
+        if (SaveManager.HasSave())
         {
-            Destroy(gameObject);
-            return;
+            strawberries = SaveManager.LoadStrawberries();
         }
-
-        instance = this;
-        DontDestroyOnLoad(gameObject);
+        else
+        {
+            strawberries = 0; // fresh start
+        }
     }
 
     public void AddStrawberries(int amount)
     {
         strawberries += amount;
-        OnStrawberryCountChanged?.Invoke(strawberries);
     }
 }

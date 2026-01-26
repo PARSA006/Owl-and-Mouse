@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -22,12 +23,10 @@ public class PlayerMovement : MonoBehaviour
 
     private bool canMove = true;
 
-    // Singleton instance so we don't duplicate the player
     private static PlayerMovement instance;
 
     private void Awake()
     {
-        // Prevent duplicates when loading new scenes
         if (instance != null && instance != this)
         {
             Destroy(gameObject);
@@ -35,19 +34,40 @@ public class PlayerMovement : MonoBehaviour
         }
 
         instance = this;
-
-        // Make the player persist across scenes
         DontDestroyOnLoad(gameObject);
+
+        // Initialize controller BEFORE scene load events
+        characterController = GetComponent<CharacterController>();
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    void Start()
+    private void OnDestroy()
     {
-        characterController = GetComponent<CharacterController>();
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void Start()
+    {
+        // Removed duplicate controller assignment here
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    void Update()
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (SaveManager.HasSave())
+        {
+            Vector3 savedPos = SaveManager.LoadPlayerPosition();
+
+            characterController.enabled = false;
+            transform.position = savedPos;
+            characterController.enabled = true;
+        }
+    }
+
+    private void Update()
     {
         Vector3 forward = transform.TransformDirection(Vector3.forward);
         Vector3 right = transform.TransformDirection(Vector3.right);
