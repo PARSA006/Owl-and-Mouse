@@ -7,7 +7,8 @@ public enum EnemyState
 {
     Patrolling,
     Following,
-    Attacking
+    Attacking,
+    Investigating
 }
 
 public class NewMonoBehaviourScript : MonoBehaviour
@@ -20,6 +21,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     [Header("Audio")]
     [SerializeField] private AudioSource chaseMusic;
+    [SerializeField] private AudioSource investigateSound;   // NEW
 
     [Header("Vision Cone Fade")]
     [SerializeField] private Renderer[] coneRenderers;
@@ -29,6 +31,9 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private float patrolSpeed = 2f;
     [SerializeField] private float chaseStartSpeed = 4f;
     [SerializeField] private float maxChaseSpeed = 8f;
+
+    [Header("Investigation Settings")]
+    [SerializeField] private float investigateSpeed = 3f;   // NEW
 
     [Header("Chase Acceleration")]
     [SerializeField] private float accelerationTime = 1.5f;
@@ -56,6 +61,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private bool chaseStarted = false;
     private bool playerInCone = false;
+
+    private bool hasPlayedInvestigateSound = false;   // NEW
 
     private void Awake()
     {
@@ -120,14 +127,19 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 if (dist <= attackRange && playerInCone)
                 {
                     state = EnemyState.Attacking;
-                    StartCoroutine(RestartAfterDelay(0.5f));
+                    PlayerRespawn.RespawnPlayer();
                 }
+                break;
+
+            case EnemyState.Investigating:
+                Investigate();
                 break;
         }
 
+        // Updated rotation logic
         if (state == EnemyState.Following)
             RotateTowardPlayer();
-        else if (state == EnemyState.Patrolling)
+        else if (state == EnemyState.Patrolling || state == EnemyState.Investigating)
             RotateTowardMovementDirection();
 
         UpdateAnimations();
@@ -199,6 +211,9 @@ public class NewMonoBehaviourScript : MonoBehaviour
         FadeConeToColor(new Color(1f, 0f, 0f, 0.35f));
     }
 
+    // -----------------------------
+    // Player exited cone
+    // -----------------------------
     public void PlayerExitedCone()
     {
         playerInCone = false;
@@ -333,20 +348,12 @@ public class NewMonoBehaviourScript : MonoBehaviour
     {
         if (animator == null) return;
 
-        bool walking = state == EnemyState.Following
-            ? true
-            : agent.velocity.sqrMagnitude > 0.01f;
+        bool walking =
+            state == EnemyState.Following ||
+            state == EnemyState.Investigating ||
+            agent.velocity.sqrMagnitude > 0.01f;
 
         animator.SetBool(IsWalking, walking);
-    }
-
-    // -----------------------------
-    // Attack + Restart
-    // -----------------------------
-    private IEnumerator RestartAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     // -----------------------------
@@ -377,6 +384,55 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 coneRenderers[i].material.SetColor("_BaseColor", Color.Lerp(start[i], target, t));
 
             yield return null;
+        }
+    }
+
+    // -----------------------------
+    // Sound Investigation Trigger
+    // -----------------------------
+    public void InvestigateSound(Vector3 soundPosition)
+    {
+        state = EnemyState.Investigating;
+        playerInCone = false;
+
+        agent.speed = investigateSpeed;
+
+        if (loseRoutine != null)
+        {
+            StopCoroutine(loseRoutine);
+            loseRoutine = null;
+        }
+
+        agent.isStopped = false;
+        agent.SetDestination(soundPosition);
+
+        if (!hasPlayedInvestigateSound && investigateSound != null)
+        {
+            investigateSound.Play();
+            hasPlayedInvestigateSound = true;
+        }
+
+        FadeConeToColor(new Color(1f, 0.5f, 0f, 0.35f));
+    }
+
+    // -----------------------------
+    // Investigating Behavior
+    // -----------------------------
+    private void Investigate()
+    {
+        if (!agent.pathPending && agent.remainingDistance <= stopAtDistance)
+        {
+            state = EnemyState.Patrolling;
+            chaseStarted = false;
+
+            hasPlayedInvestigateSound = false;
+
+            if (chaseMusic.isPlaying)
+                chaseMusic.Stop();
+
+            FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
+
+            GoToClosestPatrolPoint();
         }
     }
 }
