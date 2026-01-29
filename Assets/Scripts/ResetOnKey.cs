@@ -3,13 +3,19 @@ using UnityEngine.SceneManagement;
 
 public class ResetOnKey : MonoBehaviour
 {
-    public string firstSceneName = "Scene1"; // change to your starting scene
+    [SerializeField] private string firstSceneName = "Scene1"; // your starting scene
 
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
+            // Clear all saved data
             SaveManager.ResetGame();
+
+            // Reset teleport data if you're using it
+            TeleportData.Clear();
+
+            // Load the starting scene
             SceneManager.LoadScene(firstSceneName);
         }
     }

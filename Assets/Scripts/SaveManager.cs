@@ -23,16 +23,16 @@ public static class SaveManager
 
     public static Vector3 LoadPlayerPosition()
     {
-        float x = PlayerPrefs.GetFloat("PlayerX");
-        float y = PlayerPrefs.GetFloat("PlayerY");
-        float z = PlayerPrefs.GetFloat("PlayerZ");
+        float x = PlayerPrefs.GetFloat("PlayerX", 0f);
+        float y = PlayerPrefs.GetFloat("PlayerY", 0f);
+        float z = PlayerPrefs.GetFloat("PlayerZ", 0f);
 
         return new Vector3(x, y, z);
     }
 
     public static int LoadStrawberries()
     {
-        return PlayerPrefs.GetInt("Strawberries");
+        return PlayerPrefs.GetInt("Strawberries", 0);
     }
 
     // -------------------------
