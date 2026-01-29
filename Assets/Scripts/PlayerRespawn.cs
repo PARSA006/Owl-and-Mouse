@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public static class PlayerRespawn
 {
@@ -7,81 +8,26 @@ public static class PlayerRespawn
 
     public static void RespawnPlayer()
     {
-        // 1. Restore player position from SaveManager (your existing system)
-        if (SaveManager.HasSave())
-        {
-            Vector3 savedPos = SaveManager.LoadPlayerPosition();
+        restoredFromCheckpoint = true;
 
-            var player = Object.FindFirstObjectByType<PlayerMovement>();
-            if (player != null)
-            {
-                var controller = player.GetComponent<CharacterController>();
-                if (controller != null)
-                {
-                    controller.enabled = false;
-                    player.transform.position = savedPos;
-                    controller.enabled = true;
-                }
-                else
-                {
-                    player.transform.position = savedPos;
-                }
-            }
-        }
-        else
-        {
-            // No checkpoint → restart the scene
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-            return;
-        }
-
-        // 2. Restore world snapshot (rewind system)
-        if (Checkpoint.lastSnapshot != null)
-        {
-            restoredFromCheckpoint = true;   // ← IMPORTANT
-            RestoreSnapshot();
-            restoredFromCheckpoint = false;  // ← Reset after restore
-        }
+        SceneManager.sceneLoaded += OnSceneLoadedRespawn;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-    private static void RestoreSnapshot()
+    private static void OnSceneLoadedRespawn(Scene scene, LoadSceneMode mode)
     {
-        var snap = Checkpoint.lastSnapshot;
-        if (snap == null) return;
+        PlayerMovement.Instance.StartCoroutine(DelayedRestore());
+        SceneManager.sceneLoaded -= OnSceneLoadedRespawn;
+    }
 
-        // Restore player
-        var player = Object.FindFirstObjectByType<PlayerMovement>();
-        if (player != null)
-        {
-            var controller = player.GetComponent<CharacterController>();
-            if (controller != null)
-            {
-                controller.enabled = false;
-                player.transform.position = snap.playerPosition;
-                controller.enabled = true;
-            }
-            else
-            {
-                player.transform.position = snap.playerPosition;
-            }
-        }
+    private static IEnumerator DelayedRestore()
+    {
+        // Wait 1 frame so all pickups, traps, enemies exist
+        yield return null;
 
-        // Restore enemies
-        var allEnemies = Object.FindObjectsByType<NewMonoBehaviourScript>(FindObjectsSortMode.None);
+        if (Checkpoint.lastSnapshot != null)
+            Checkpoint.RestoreSnapshot();
 
-        int enemyCount = Mathf.Min(allEnemies.Length, snap.enemies.Count);
-        for (int i = 0; i < enemyCount; i++)
-        {
-            allEnemies[i].RestoreSnapshot(snap.enemies[i]);
-        }
-
-        // Restore traps
-        var allTraps = Object.FindObjectsByType<Trap>(FindObjectsSortMode.None);
-
-        int trapCount = Mathf.Min(allTraps.Length, snap.traps.Count);
-        for (int i = 0; i < trapCount; i++)
-        {
-            allTraps[i].RestoreSnapshot(snap.traps[i]);
-        }
+        restoredFromCheckpoint = false;
     }
 }

@@ -6,20 +6,13 @@ public class SoundTrap : MonoBehaviour
     [SerializeField] private AudioSource soundEffect;
     [SerializeField] private float alertRadius = 20f;
 
-    private bool hasTriggered = false; // prevents double-triggering
-
     private void OnTriggerEnter(Collider other)
     {
-        if (hasTriggered) return; // avoid multiple triggers
         if (!other.CompareTag("Player")) return;
 
-        hasTriggered = true;
-
-        // Play the trap sound
         if (soundEffect != null)
             soundEffect.Play();
 
-        // Alert all enemies in range
         AlertEnemies();
     }
 
@@ -30,11 +23,8 @@ public class SoundTrap : MonoBehaviour
         foreach (var enemy in enemies)
         {
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
-
             if (dist <= alertRadius)
-            {
                 enemy.InvestigateSound(transform.position);
-            }
         }
     }
 }

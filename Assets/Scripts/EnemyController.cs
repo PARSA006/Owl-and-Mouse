@@ -63,7 +63,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
     private bool playerInCone = false;
     private bool hasPlayedInvestigateSound = false;
 
-    // Correct getter: returns the patrol point the enemy is actually walking toward
     public int GetActualTargetIndex()
     {
         if (isWaiting)
@@ -153,7 +152,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
         if (state == EnemyState.Following)
             RotateTowardPlayer();
-        else if (state == EnemyState.Patrolling || state == EnemyState.Investigating)
+        else
             RotateTowardMovementDirection();
 
         UpdateAnimations();
@@ -334,14 +333,12 @@ public class NewMonoBehaviourScript : MonoBehaviour
     private void GoToNextPatrolPoint()
     {
         if (patrolPoints.Length == 0) return;
-
         agent.SetDestination(patrolPoints[patrolIndex].position);
     }
 
     private void GoToSavedPatrolPoint()
     {
         if (patrolPoints.Length == 0) return;
-
         agent.SetDestination(patrolPoints[patrolIndex].position);
     }
 

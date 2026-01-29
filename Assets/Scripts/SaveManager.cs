@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public static class SaveManager
 {
@@ -12,6 +13,9 @@ public static class SaveManager
         PlayerPrefs.SetFloat("PlayerZ", position.z);
 
         PlayerPrefs.SetInt("Strawberries", strawberries);
+
+        // Save the scene the player is currently in
+        PlayerPrefs.SetString("SavedScene", SceneManager.GetActiveScene().name);
 
         PlayerPrefs.Save();
     }
@@ -36,15 +40,27 @@ public static class SaveManager
     }
 
     // -------------------------
+    // SCENE SAVE / LOAD
+    // -------------------------
+    public static string LoadSceneName()
+    {
+        return PlayerPrefs.GetString("SavedScene", "");
+    }
+
+    // -------------------------
     // PICKUP SAVE / LOAD
     // -------------------------
     public static void MarkPickupCollected(string id)
     {
+        Debug.Log("PICKUP COLLECTED: " + id);
+
         PlayerPrefs.SetInt("pickup_" + id, 1);
     }
 
     public static bool IsPickupCollected(string id)
     {
+        Debug.Log("CHECK PICKUP STATE: " + id + " = " + PlayerPrefs.GetInt("pickup_" + id, 0));
+
         return PlayerPrefs.GetInt("pickup_" + id, 0) == 1;
     }
 

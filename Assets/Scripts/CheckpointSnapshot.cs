@@ -20,9 +20,12 @@ public class CheckpointSnapshot
 {
     public Vector3 playerPosition;
 
-    // All enemies in the scene at the moment of saving
     public List<EnemySnapshot> enemies = new List<EnemySnapshot>();
-
-    // All traps in the scene at the moment of saving
     public List<TrapSnapshot> traps = new List<TrapSnapshot>();
+
+    // Track which pickups were collected at the moment of saving
+    public HashSet<string> collectedPickups = new HashSet<string>();
+
+    // NEW: Track how many strawberries the player had at the checkpoint
+    public int strawberryCount;
 }

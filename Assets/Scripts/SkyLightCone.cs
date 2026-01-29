@@ -68,11 +68,8 @@ public class SkyLightCone : MonoBehaviour
             {
                 hitPoint = hit.point;
 
-                // Check if the hit object is the player
                 if (((1 << hit.collider.gameObject.layer) & playerMask) != 0)
-                {
                     playerVisible = true;
-                }
             }
 
             vertices[i + 1] = transform.InverseTransformPoint(hitPoint);
@@ -98,7 +95,6 @@ public class SkyLightCone : MonoBehaviour
     {
         if (enemyAI == null)
         {
-            // Try to re-acquire enemy if scene changed or respawn happened
             enemyAI = FindFirstObjectByType<NewMonoBehaviourScript>();
             if (enemyAI == null)
                 return;

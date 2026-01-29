@@ -22,10 +22,7 @@ public class NextScene : MonoBehaviour
 
         if (playerInventory != null && playerInventory.strawberries >= requiredStrawberries)
         {
-            // Set teleport data for next scene
             TeleportData.SetTeleportPosition(teleportSpawnPosition);
-
-            // Load next scene
             SceneManager.LoadScene(sceneName);
         }
         else

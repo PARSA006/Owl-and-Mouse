@@ -1,15 +1,25 @@
+using System.Collections;
 using UnityEngine;
 
 public class StrawberryPickup : MonoBehaviour
 {
-    [SerializeField] private string pickupID;   // unique ID for this strawberry
+    [SerializeField] private string pickupID;
     [SerializeField] private int amount = 1;
+
+    public string PickupID => pickupID;
 
     private bool collected = false;
 
-    private void Start()
+    private IEnumerator Start()
     {
-        // If already collected, remove it from the scene
+        Debug.Log("STRAWBERRY START: checking pickup " + pickupID);
+
+        // Wait TWO frames:
+        // 1. Scene loads
+        // 2. Checkpoint.RestoreSnapshot() runs
+        yield return null;
+        yield return null;
+
         if (SaveManager.IsPickupCollected(pickupID))
         {
             collected = true;
@@ -22,16 +32,13 @@ public class StrawberryPickup : MonoBehaviour
         if (collected) return;
 
         PlayerInventory inv = other.GetComponent<PlayerInventory>();
-        if (inv != null)
-        {
-            collected = true;
+        if (inv == null) return;
 
-            inv.AddStrawberries(amount);
+        collected = true;
 
-            // Mark this pickup as collected
-            SaveManager.MarkPickupCollected(pickupID);
+        inv.AddStrawberries(amount);
+        SaveManager.MarkPickupCollected(pickupID);
 
-            Destroy(gameObject);
-        }
+        Destroy(gameObject);
     }
 }

@@ -1,15 +1,25 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerInventory : MonoBehaviour
 {
-    public int strawberries { get; private set; } = 0;
+    public int strawberries { get; set; } = 0;
 
-    private void Start()
+    private IEnumerator Start()
     {
-        // Load saved strawberries if a save exists
-        strawberries = SaveManager.HasSave()
-            ? SaveManager.LoadStrawberries()
-            : 0;
+        Debug.Log("INVENTORY START: strawberries = " + strawberries +
+          " | restoredFromCheckpoint = " + PlayerRespawn.restoredFromCheckpoint);
+
+        // Wait one frame so Checkpoint.RestoreSnapshot() can run first
+        yield return null;
+
+        // Only load from SaveManager if we are NOT restoring from a checkpoint
+        if (!PlayerRespawn.restoredFromCheckpoint)
+        {
+            strawberries = SaveManager.HasSave()
+                ? SaveManager.LoadStrawberries()
+                : 0;
+        }
     }
 
     public void AddStrawberries(int amount)
@@ -19,7 +29,6 @@ public class PlayerInventory : MonoBehaviour
 
     public void SaveInventory()
     {
-        // Optional helper if you ever want to save manually
         SaveManager.SavePlayer(transform.position, strawberries);
     }
 }

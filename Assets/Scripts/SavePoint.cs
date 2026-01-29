@@ -10,18 +10,24 @@ public class SavePoint : MonoBehaviour
         if (inv != null)
         {
             SaveManager.SavePlayer(other.transform.position, inv.strawberries);
-            SaveSnapshot();
+            SaveSnapshot(inv);
         }
     }
 
-    private void SaveSnapshot()
+    private void SaveSnapshot(PlayerInventory inv)
     {
-        Checkpoint.lastSnapshot = new CheckpointSnapshot();
+        var snapshot = new CheckpointSnapshot();
+        snapshot.playerPosition = PlayerMovement.Instance.transform.position;
 
-        Checkpoint.lastSnapshot.playerPosition = PlayerMovement.Instance.transform.position;
+        // -------------------------
+        // SAVE PLAYER INVENTORY
+        // -------------------------
+        snapshot.strawberryCount = inv.strawberries;
 
+        // -------------------------
+        // ENEMIES
+        // -------------------------
         var allEnemies = FindObjectsByType<NewMonoBehaviourScript>(FindObjectsSortMode.None);
-
         foreach (var enemy in allEnemies)
         {
             var agent = enemy.GetComponent<UnityEngine.AI.NavMeshAgent>();
@@ -33,11 +39,13 @@ public class SavePoint : MonoBehaviour
                 state = EnemyState.Patrolling
             };
 
-            Checkpoint.lastSnapshot.enemies.Add(snap);
+            snapshot.enemies.Add(snap);
         }
 
+        // -------------------------
+        // TRAPS
+        // -------------------------
         var allTraps = FindObjectsByType<Trap>(FindObjectsSortMode.None);
-
         foreach (var trap in allTraps)
         {
             TrapSnapshot ts = new TrapSnapshot
@@ -45,7 +53,19 @@ public class SavePoint : MonoBehaviour
                 triggered = trap.triggered
             };
 
-            Checkpoint.lastSnapshot.traps.Add(ts);
+            snapshot.traps.Add(ts);
         }
+
+        // -------------------------
+        // PICKUPS
+        // -------------------------
+        var pickups = FindObjectsByType<StrawberryPickup>(FindObjectsSortMode.None);
+        foreach (var pickup in pickups)
+        {
+            if (SaveManager.IsPickupCollected(pickup.PickupID))
+                snapshot.collectedPickups.Add(pickup.PickupID);
+        }
+
+        Checkpoint.SetSnapshot(snapshot);
     }
 }

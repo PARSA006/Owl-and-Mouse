@@ -34,7 +34,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        // Singleton setup
         if (instance != null && instance != this)
         {
             Destroy(gameObject);
@@ -65,22 +64,20 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        characterController.enabled = false;
-
-        // Teleport override
+        // Priority 1: TeleportData (doors, portals)
         if (TeleportData.useTeleportPosition)
         {
             transform.position = TeleportData.spawnPosition;
             TeleportData.useTeleportPosition = false;
         }
-        // Normal checkpoint load
-        else if (SaveManager.HasSave())
+        // Priority 2: Normal scene load (start game, load save)
+        else if (SaveManager.HasSave() && !PlayerRespawn.restoredFromCheckpoint)
         {
             transform.position = SaveManager.LoadPlayerPosition();
         }
-
-        characterController.enabled = true;
     }
+
+
 
     private void Update()
     {
@@ -115,7 +112,6 @@ public class PlayerMovement : MonoBehaviour
             moveDirection.y -= gravity * Time.deltaTime;
         }
 
-        // Crouch (changed from R → LeftControl)
         if (Input.GetKey(KeyCode.LeftControl) && canMove)
         {
             characterController.height = crouchHeight;
