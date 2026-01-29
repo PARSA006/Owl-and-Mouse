@@ -21,7 +21,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     [Header("Audio")]
     [SerializeField] private AudioSource chaseMusic;
-    [SerializeField] private AudioSource investigateSound;   // NEW
+    [SerializeField] private AudioSource investigateSound;
 
     [Header("Vision Cone Fade")]
     [SerializeField] private Renderer[] coneRenderers;
@@ -33,7 +33,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
     [SerializeField] private float maxChaseSpeed = 8f;
 
     [Header("Investigation Settings")]
-    [SerializeField] private float investigateSpeed = 3f;   // NEW
+    [SerializeField] private float investigateSpeed = 3f;
 
     [Header("Chase Acceleration")]
     [SerializeField] private float accelerationTime = 1.5f;
@@ -61,8 +61,16 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private bool chaseStarted = false;
     private bool playerInCone = false;
+    private bool hasPlayedInvestigateSound = false;
 
-    private bool hasPlayedInvestigateSound = false;   // NEW
+    // Correct getter: returns the patrol point the enemy is actually walking toward
+    public int GetActualTargetIndex()
+    {
+        if (isWaiting)
+            return (patrolIndex + patrolPoints.Length - 1) % patrolPoints.Length;
+
+        return patrolIndex;
+    }
 
     private void Awake()
     {
@@ -95,13 +103,20 @@ public class NewMonoBehaviourScript : MonoBehaviour
         agent.speed = patrolSpeed;
         agent.angularSpeed = turnSpeed;
         agent.updateRotation = false;
-
         agent.autoBraking = false;
         agent.acceleration = 999f;
         agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         agent.stoppingDistance = 0f;
 
+        if (PlayerRespawn.restoredFromCheckpoint)
+        {
+            FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
+            return;
+        }
+
+        patrolIndex = 0;
         GoToNextPatrolPoint();
+
         FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
     }
 
@@ -136,7 +151,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 break;
         }
 
-        // Updated rotation logic
         if (state == EnemyState.Following)
             RotateTowardPlayer();
         else if (state == EnemyState.Patrolling || state == EnemyState.Investigating)
@@ -152,9 +166,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
             player = playerObj.transform;
     }
 
-    // -----------------------------
-    // Rotation
-    // -----------------------------
     private void RotateTowardPlayer()
     {
         if (player == null) return;
@@ -178,9 +189,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         }
     }
 
-    // -----------------------------
-    // Detection (called by SkyLightCone)
-    // -----------------------------
     public void PlayerEnteredCone()
     {
         playerInCone = true;
@@ -211,9 +219,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         FadeConeToColor(new Color(1f, 0f, 0f, 0.35f));
     }
 
-    // -----------------------------
-    // Player exited cone
-    // -----------------------------
     public void PlayerExitedCone()
     {
         playerInCone = false;
@@ -255,9 +260,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         loseRoutine = null;
     }
 
-    // -----------------------------
-    // Chase Acceleration
-    // -----------------------------
     private IEnumerator AccelerateToChaseStartSpeed()
     {
         float start = patrolSpeed;
@@ -273,9 +275,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         agent.speed = chaseStartSpeed;
     }
 
-    // -----------------------------
-    // Chase using NavMeshAgent
-    // -----------------------------
     private void FollowPlayer()
     {
         if (player == null) return;
@@ -287,9 +286,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
             agent.speed += chaseAccelerationRate * Time.deltaTime;
     }
 
-    // -----------------------------
-    // Patrol Logic
-    // -----------------------------
     private void Patrol()
     {
         agent.isStopped = false;
@@ -306,6 +302,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
         agent.isStopped = true;
 
         yield return new WaitForSeconds(patrolWaitTime);
+
+        patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
 
         agent.isStopped = false;
         GoToNextPatrolPoint();
@@ -338,12 +336,15 @@ public class NewMonoBehaviourScript : MonoBehaviour
         if (patrolPoints.Length == 0) return;
 
         agent.SetDestination(patrolPoints[patrolIndex].position);
-        patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
     }
 
-    // -----------------------------
-    // Animation
-    // -----------------------------
+    private void GoToSavedPatrolPoint()
+    {
+        if (patrolPoints.Length == 0) return;
+
+        agent.SetDestination(patrolPoints[patrolIndex].position);
+    }
+
     private void UpdateAnimations()
     {
         if (animator == null) return;
@@ -356,9 +357,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         animator.SetBool(IsWalking, walking);
     }
 
-    // -----------------------------
-    // Vision Cone Fade
-    // -----------------------------
     private void FadeConeToColor(Color target)
     {
         if (fadeRoutine != null)
@@ -387,9 +385,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         }
     }
 
-    // -----------------------------
-    // Sound Investigation Trigger
-    // -----------------------------
     public void InvestigateSound(Vector3 soundPosition)
     {
         state = EnemyState.Investigating;
@@ -415,9 +410,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         FadeConeToColor(new Color(1f, 0.5f, 0f, 0.35f));
     }
 
-    // -----------------------------
-    // Investigating Behavior
-    // -----------------------------
     private void Investigate()
     {
         if (!agent.pathPending && agent.remainingDistance <= stopAtDistance)
@@ -434,5 +426,30 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
             GoToClosestPatrolPoint();
         }
+    }
+
+    public void RestoreSnapshot(EnemySnapshot snap)
+    {
+        StopAllCoroutines();
+
+        agent.Warp(snap.position);
+        transform.position = snap.position;
+        patrolIndex = snap.patrolIndex;
+
+        state = EnemyState.Patrolling;
+        chaseStarted = false;
+        playerInCone = false;
+        hasPlayedInvestigateSound = false;
+
+        if (chaseMusic.isPlaying) chaseMusic.Stop();
+        if (investigateSound.isPlaying) investigateSound.Stop();
+
+        agent.isStopped = false;
+        agent.speed = patrolSpeed;
+        agent.ResetPath();
+
+        FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
+
+        GoToSavedPatrolPoint();
     }
 }

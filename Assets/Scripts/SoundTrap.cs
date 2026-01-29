@@ -2,20 +2,25 @@ using UnityEngine;
 
 public class SoundTrap : MonoBehaviour
 {
-    public AudioSource soundEffect;
-    public float alertRadius = 20f;
+    [Header("Trap Settings")]
+    [SerializeField] private AudioSource soundEffect;
+    [SerializeField] private float alertRadius = 20f;
+
+    private bool hasTriggered = false; // prevents double-triggering
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
-        {
-            // Play the trap sound
-            if (soundEffect != null)
-                soundEffect.Play();
+        if (hasTriggered) return; // avoid multiple triggers
+        if (!other.CompareTag("Player")) return;
 
-            // Alert all enemies in range
-            AlertEnemies();
-        }
+        hasTriggered = true;
+
+        // Play the trap sound
+        if (soundEffect != null)
+            soundEffect.Play();
+
+        // Alert all enemies in range
+        AlertEnemies();
     }
 
     private void AlertEnemies()

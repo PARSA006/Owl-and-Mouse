@@ -1,13 +1,13 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class nextscene : MonoBehaviour
+public class NextScene : MonoBehaviour
 {
-    public string scenename;
-    public int requiredStrawberries = 5;
+    [SerializeField] private string sceneName;
+    [SerializeField] private int requiredStrawberries = 5;
 
-    // The fixed spawn point in the next scene
-    public Vector3 teleportSpawnPosition = new Vector3(0f, 1f, 0f);
+    [Header("Spawn Point in Next Scene")]
+    [SerializeField] private Vector3 teleportSpawnPosition = new Vector3(0f, 1f, 0f);
 
     private PlayerInventory playerInventory;
 
@@ -18,20 +18,19 @@ public class nextscene : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
-        {
-            if (playerInventory != null && playerInventory.strawberries >= requiredStrawberries)
-            {
-                // Tell the next scene to use the teleport spawn
-                TeleportData.spawnPosition = teleportSpawnPosition;
-                TeleportData.useTeleportPosition = true;
+        if (!other.CompareTag("Player")) return;
 
-                SceneManager.LoadScene(scenename);
-            }
-            else
-            {
-                Debug.Log("Door is locked! Need more strawberries.");
-            }
+        if (playerInventory != null && playerInventory.strawberries >= requiredStrawberries)
+        {
+            // Set teleport data for next scene
+            TeleportData.SetTeleportPosition(teleportSpawnPosition);
+
+            // Load next scene
+            SceneManager.LoadScene(sceneName);
+        }
+        else
+        {
+            Debug.Log($"Door is locked! Need {requiredStrawberries} strawberries.");
         }
     }
 }
