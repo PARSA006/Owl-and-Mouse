@@ -1,11 +1,14 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
+
 
 public static class SaveManager
 {
     // -------------------------
-    // PLAYER SAVE / LOAD
+    // PLAYER POSITION & SCENE
     // -------------------------
+
     public static void SavePlayer(Vector3 position, int strawberries)
     {
         PlayerPrefs.SetFloat("PlayerX", position.x);
@@ -14,8 +17,10 @@ public static class SaveManager
 
         PlayerPrefs.SetInt("Strawberries", strawberries);
 
-        // Save the scene the player is currently in
-        PlayerPrefs.SetString("SavedScene", SceneManager.GetActiveScene().name);
+        string sceneName = SceneManager.GetActiveScene().name;
+        PlayerPrefs.SetString("SavedScene", sceneName);
+
+        Debug.Log("SAVE MANAGER: Saving checkpoint in scene: " + sceneName);
 
         PlayerPrefs.Save();
     }
@@ -39,34 +44,44 @@ public static class SaveManager
         return PlayerPrefs.GetInt("Strawberries", 0);
     }
 
-    // -------------------------
-    // SCENE SAVE / LOAD
-    // -------------------------
     public static string LoadSceneName()
     {
-        return PlayerPrefs.GetString("SavedScene", "");
+        string scene = PlayerPrefs.GetString("SavedScene", "");
+        Debug.Log("SAVE MANAGER: Loading saved scene: " + scene);
+        return scene;
     }
 
     // -------------------------
-    // PICKUP SAVE / LOAD
+    // PICKUP SYSTEM
     // -------------------------
+
     public static void MarkPickupCollected(string id)
     {
-        Debug.Log("PICKUP COLLECTED: " + id);
-
         PlayerPrefs.SetInt("pickup_" + id, 1);
     }
 
     public static bool IsPickupCollected(string id)
     {
-        Debug.Log("CHECK PICKUP STATE: " + id + " = " + PlayerPrefs.GetInt("pickup_" + id, 0));
-
         return PlayerPrefs.GetInt("pickup_" + id, 0) == 1;
     }
 
+    public static void UnmarkPickupCollected(string id)
+    {
+        PlayerPrefs.DeleteKey("pickup_" + id);
+    }
+
+    public static void ClearAllCollectedPickups()
+    {
+        foreach (string id in StrawberryPickup.AllPickupIDs)
+        {
+            PlayerPrefs.DeleteKey("pickup_" + id);
+        }
+    }
+
     // -------------------------
-    // FULL GAME RESET
+    // RESET EVERYTHING
     // -------------------------
+
     public static void ResetGame()
     {
         PlayerPrefs.DeleteAll();

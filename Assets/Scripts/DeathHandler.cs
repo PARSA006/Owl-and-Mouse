@@ -6,7 +6,7 @@ public class PlayerDeath : MonoBehaviour
     {
         if (other.CompareTag("Hazard"))
         {
-            PlayerRespawn.RespawnPlayer();
+            PlayerRespawn.Instance.RespawnPlayer();
         }
     }
 }

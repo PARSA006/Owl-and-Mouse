@@ -1,32 +1,35 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class SavePoint : MonoBehaviour
 {
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Player")) return;
+        Debug.Log("SAVEPOINT TRIGGERED by: " + other.name);
 
-        PlayerInventory inv = other.GetComponent<PlayerInventory>();
+        Transform root = other.transform.root;
+
+        if (!root.CompareTag("Player"))
+            return;
+
+        PlayerInventory inv = root.GetComponent<PlayerInventory>();
         if (inv != null)
         {
-            SaveManager.SavePlayer(other.transform.position, inv.strawberries);
+            SaveManager.SavePlayer(root.position, inv.strawberries);
             SaveSnapshot(inv);
         }
     }
 
     private void SaveSnapshot(PlayerInventory inv)
     {
-        var snapshot = new CheckpointSnapshot();
-        snapshot.playerPosition = PlayerMovement.Instance.transform.position;
+        Debug.Log("CHECKPOINT SNAPSHOT CREATED");
 
-        // -------------------------
-        // SAVE PLAYER INVENTORY
-        // -------------------------
+        var snapshot = new CheckpointSnapshot();
+
+        // PLAYER
+        snapshot.playerPosition = PlayerMovement.Instance.transform.position;
         snapshot.strawberryCount = inv.strawberries;
 
-        // -------------------------
         // ENEMIES
-        // -------------------------
         var allEnemies = FindObjectsByType<NewMonoBehaviourScript>(FindObjectsSortMode.None);
         foreach (var enemy in allEnemies)
         {
@@ -42,9 +45,7 @@ public class SavePoint : MonoBehaviour
             snapshot.enemies.Add(snap);
         }
 
-        // -------------------------
         // TRAPS
-        // -------------------------
         var allTraps = FindObjectsByType<Trap>(FindObjectsSortMode.None);
         foreach (var trap in allTraps)
         {
@@ -56,14 +57,18 @@ public class SavePoint : MonoBehaviour
             snapshot.traps.Add(ts);
         }
 
-        // -------------------------
-        // PICKUPS
-        // -------------------------
-        var pickups = FindObjectsByType<StrawberryPickup>(FindObjectsSortMode.None);
-        foreach (var pickup in pickups)
+        // ⭐ FIX #1 — PICKUPS
+        // If the pickup GameObject no longer exists, it was collected
+        foreach (string id in StrawberryPickup.AllPickupIDs)
         {
-            if (SaveManager.IsPickupCollected(pickup.PickupID))
-                snapshot.collectedPickups.Add(pickup.PickupID);
+            GameObject pickupObj = GameObject.Find(id);
+
+            if (pickupObj == null)
+            {
+                snapshot.collectedPickups.Add(id);
+                SaveManager.MarkPickupCollected(id);
+                Debug.Log("CHECKPOINT: Pickup saved as collected: " + id);
+            }
         }
 
         Checkpoint.SetSnapshot(snapshot);

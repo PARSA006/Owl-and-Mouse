@@ -1,8 +1,11 @@
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class StrawberryPickup : MonoBehaviour
 {
+    public static HashSet<string> AllPickupIDs = new HashSet<string>();
+
     [SerializeField] private string pickupID;
     [SerializeField] private int amount = 1;
 
@@ -10,16 +13,23 @@ public class StrawberryPickup : MonoBehaviour
 
     private bool collected = false;
 
+    private void Awake()
+    {
+        // Register this pickup ID globally
+        AllPickupIDs.Add(pickupID);
+
+        // IMPORTANT: Ensure the GameObject name matches the pickupID
+        // so SavePoint can detect if it exists
+        gameObject.name = pickupID;
+    }
+
     private IEnumerator Start()
     {
-        Debug.Log("STRAWBERRY START: checking pickup " + pickupID);
+        // Wait until checkpoint restore is done
+        for (int i = 0; i < 5; i++)
+            yield return null;
 
-        // Wait TWO frames:
-        // 1. Scene loads
-        // 2. Checkpoint.RestoreSnapshot() runs
-        yield return null;
-        yield return null;
-
+        // If the checkpoint snapshot says this was collected, destroy it
         if (SaveManager.IsPickupCollected(pickupID))
         {
             collected = true;
@@ -37,7 +47,9 @@ public class StrawberryPickup : MonoBehaviour
         collected = true;
 
         inv.AddStrawberries(amount);
-        SaveManager.MarkPickupCollected(pickupID);
+
+        // ❌ DO NOT SAVE HERE
+        // SavePoint will save it when the checkpoint is reached
 
         Destroy(gameObject);
     }

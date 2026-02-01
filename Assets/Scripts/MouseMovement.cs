@@ -64,6 +64,14 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // ⭐ CRITICAL FIX ⭐
+        // If we are respawning from a checkpoint, DO NOT override the restored position.
+        if (PlayerRespawn.restoredFromCheckpoint)
+        {
+            Debug.Log("PLAYERMOVEMENT: Skipping OnSceneLoaded position override (checkpoint restore)");
+            return;
+        }
+
         // Priority 1: TeleportData (doors, portals)
         if (TeleportData.useTeleportPosition)
         {
@@ -71,13 +79,11 @@ public class PlayerMovement : MonoBehaviour
             TeleportData.useTeleportPosition = false;
         }
         // Priority 2: Normal scene load (start game, load save)
-        else if (SaveManager.HasSave() && !PlayerRespawn.restoredFromCheckpoint)
+        else if (SaveManager.HasSave())
         {
             transform.position = SaveManager.LoadPlayerPosition();
         }
     }
-
-
 
     private void Update()
     {

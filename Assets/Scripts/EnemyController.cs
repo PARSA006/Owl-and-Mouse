@@ -141,7 +141,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 if (dist <= attackRange && playerInCone)
                 {
                     state = EnemyState.Attacking;
-                    PlayerRespawn.RespawnPlayer();
+                    PlayerRespawn.Instance.RespawnPlayer();
                 }
                 break;
 

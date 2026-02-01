@@ -2,31 +2,82 @@
 using UnityEngine.SceneManagement;
 using System.Collections;
 
-public static class PlayerRespawn
+public class PlayerRespawn : MonoBehaviour
 {
+    public static PlayerRespawn Instance;
+
     public static bool restoredFromCheckpoint = false;
 
-    public static void RespawnPlayer()
+    private void Awake()
     {
+        Instance = this;
+        DontDestroyOnLoad(gameObject); // Keep alive across scene loads
+    }
+
+    public void RespawnPlayer()
+    {
+        Debug.Log("RESPAWN: Player respawned");
+
         restoredFromCheckpoint = true;
 
-        SceneManager.sceneLoaded += OnSceneLoadedRespawn;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-    }
-
-    private static void OnSceneLoadedRespawn(Scene scene, LoadSceneMode mode)
-    {
-        PlayerMovement.Instance.StartCoroutine(DelayedRestore());
-        SceneManager.sceneLoaded -= OnSceneLoadedRespawn;
-    }
-
-    private static IEnumerator DelayedRestore()
-    {
-        // Wait 1 frame so all pickups, traps, enemies exist
-        yield return null;
+        string sceneToLoad;
 
         if (Checkpoint.lastSnapshot != null)
-            Checkpoint.RestoreSnapshot();
+        {
+            sceneToLoad = SaveManager.LoadSceneName();
+            Debug.Log("RESPAWN: Loading checkpoint scene: " + sceneToLoad);
+        }
+        else
+        {
+            sceneToLoad = SceneManager.GetActiveScene().name;
+            Debug.Log("RESPAWN: No checkpoint found, reloading current scene: " + sceneToLoad);
+        }
+
+        SceneManager.LoadScene(sceneToLoad);
+
+        StartCoroutine(DelayedRestore());
+    }
+
+    private IEnumerator DelayedRestore()
+    {
+        Debug.Log("RESPAWN: RestoreStarted");
+
+        PlayerMovement pm = null;
+
+        while (pm == null)
+        {
+            pm = Object.FindFirstObjectByType<PlayerMovement>();
+            Debug.Log("RESPAWN: Searching for PlayerMovement... found = " + pm);
+            yield return null;
+        }
+
+        Debug.Log("RESPAWN: Calling RestoreSnapshotTo()...");
+
+        // ⭐ CRITICAL FIX ⭐
+        // Disable CharacterController so teleporting works without snapping back
+        var controller = pm.GetComponent<CharacterController>();
+        if (controller != null)
+        {
+            controller.enabled = false;
+            Debug.Log("RESPAWN: CharacterController disabled for restore");
+        }
+
+        try
+        {
+            Checkpoint.RestoreSnapshotTo(pm);
+            Debug.Log("RESPAWN: RestoreSnapshotTo finished");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError("RESPAWN: RestoreSnapshotTo threw exception: " + ex.Message);
+        }
+
+        // Re-enable AFTER teleport
+        if (controller != null)
+        {
+            controller.enabled = true;
+            Debug.Log("RESPAWN: CharacterController re-enabled after restore");
+        }
 
         restoredFromCheckpoint = false;
     }

@@ -1,39 +1,56 @@
 using UnityEngine;
+using System.Collections;
 
 public class Trap : MonoBehaviour
 {
-    [SerializeField] private Collider triggerCollider;
-    [SerializeField] private GameObject visual;
+    public bool triggered = false;
+    private Collider col;
 
-    public bool triggered { get; private set; } = false;
-
-    private void Reset()
+    private void Awake()
     {
-        if (triggerCollider == null)
-            triggerCollider = GetComponent<Collider>();
+        col = GetComponent<Collider>();
+    }
+
+    private void OnEnable()
+    {
+        Debug.Log("TRAP: OnEnable called — disabling collider until restore finishes");
+        StartCoroutine(EnableAfterRestore());
+    }
+
+    private IEnumerator EnableAfterRestore()
+    {
+        if (col != null)
+        {
+            col.enabled = false;
+
+            while (PlayerRespawn.restoredFromCheckpoint)
+                yield return null;
+
+            col.enabled = true;
+            Debug.Log("TRAP: Collider re-enabled after restore");
+        }
+        else
+        {
+            Debug.LogWarning("TRAP: Collider not found");
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (triggered) return;
-        if (!other.CompareTag("Player")) return;
+        if (triggered)
+            return;
 
-        triggered = true;
-
-        PlayerRespawn.RespawnPlayer();
-
-        if (triggerCollider != null)
-            triggerCollider.enabled = false;
+        if (other.transform.root.CompareTag("Player"))
+        {
+            triggered = true;
+            Debug.Log("TRAP: Player entered trap — triggering respawn");
+            PlayerRespawn.Instance.RespawnPlayer();
+        }
     }
 
-    public void RestoreSnapshot(TrapSnapshot snap)
+    public void SetTriggered(bool value)
     {
-        triggered = snap.triggered;
-
-        if (triggerCollider != null)
-            triggerCollider.enabled = !triggered;
-
-        if (visual != null)
-            visual.SetActive(true);
+        triggered = value;
+        Debug.Log("TRAP: Triggered state set to " + value);
     }
 }
