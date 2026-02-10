@@ -39,7 +39,8 @@ public class SavePoint : MonoBehaviour
             {
                 position = agent != null ? agent.nextPosition : enemy.transform.position,
                 patrolIndex = enemy.GetActualTargetIndex(),
-                state = EnemyState.Patrolling
+                state = EnemyState.Patrolling,
+                zoneIndex = enemy.currentZoneIndex // NEW
             };
 
             snapshot.enemies.Add(snap);
@@ -57,8 +58,7 @@ public class SavePoint : MonoBehaviour
             snapshot.traps.Add(ts);
         }
 
-        // ⭐ FIX #1 — PICKUPS
-        // If the pickup GameObject no longer exists, it was collected
+        // PICKUPS
         foreach (string id in StrawberryPickup.AllPickupIDs)
         {
             GameObject pickupObj = GameObject.Find(id);
@@ -67,7 +67,6 @@ public class SavePoint : MonoBehaviour
             {
                 snapshot.collectedPickups.Add(id);
                 SaveManager.MarkPickupCollected(id);
-                Debug.Log("CHECKPOINT: Pickup saved as collected: " + id);
             }
         }
 

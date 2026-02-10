@@ -27,32 +27,53 @@ public static class Checkpoint
 
         Debug.Log("RESTORE SNAPSHOT: Applying snapshot...");
 
+        // -------------------------
         // PLAYER POSITION
+        // -------------------------
         Debug.Log("RESTORE: Moving player to saved position: " + lastSnapshot.playerPosition);
         player.transform.position = lastSnapshot.playerPosition;
-        Debug.Log("RESTORE: Player now at position: " + player.transform.position);
 
+        // -------------------------
         // INVENTORY
+        // -------------------------
         var inv = Object.FindFirstObjectByType<PlayerInventory>();
         if (inv != null)
         {
             inv.strawberries = lastSnapshot.strawberryCount;
             Debug.Log("RESTORE: Strawberry count restored to " + inv.strawberries);
         }
-        else
-        {
-            Debug.LogWarning("RESTORE: PlayerInventory not found");
-        }
 
-        // ENEMIES
+        // -------------------------
+        // ENEMIES (UPDATED FOR ZONES)
+        // -------------------------
         var allEnemies = Object.FindObjectsByType<NewMonoBehaviourScript>(FindObjectsSortMode.None);
+        var allZones = Object.FindObjectsByType<PatrolZone>(FindObjectsSortMode.None);
+
         for (int i = 0; i < allEnemies.Length && i < lastSnapshot.enemies.Count; i++)
         {
-            allEnemies[i].RestoreSnapshot(lastSnapshot.enemies[i]);
-            Debug.Log("RESTORE: Enemy " + i + " restored");
+            var enemy = allEnemies[i];
+            var snap = lastSnapshot.enemies[i];
+
+            // Restore basic enemy state
+            enemy.RestoreSnapshot(snap);
+
+            // Restore patrol zone
+            foreach (var zone in allZones)
+            {
+                if (zone.zoneIndex == snap.zoneIndex)
+                {
+                    enemy.currentZoneIndex = snap.zoneIndex;
+                    enemy.currentPatrolPoints = zone.patrolPoints;
+                    break;
+                }
+            }
+
+            Debug.Log("RESTORE: Enemy " + i + " restored to zone " + snap.zoneIndex);
         }
 
+        // -------------------------
         // TRAPS
+        // -------------------------
         var allTraps = Object.FindObjectsByType<Trap>(FindObjectsSortMode.None);
         for (int i = 0; i < allTraps.Length && i < lastSnapshot.traps.Count; i++)
         {
@@ -60,7 +81,11 @@ public static class Checkpoint
             Debug.Log("RESTORE: Trap " + i + " triggered state = " + lastSnapshot.traps[i].triggered);
         }
 
+        // -------------------------
         // PICKUPS
+        // -------------------------
+        SaveManager.ClearAllCollectedPickups();
+
         foreach (string id in lastSnapshot.collectedPickups)
         {
             SaveManager.MarkPickupCollected(id);

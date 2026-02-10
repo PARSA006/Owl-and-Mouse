@@ -13,10 +13,14 @@ public enum EnemyState
 
 public class NewMonoBehaviourScript : MonoBehaviour
 {
+    private float investigateTimer = 0f;
+
     private static readonly int IsWalking = Animator.StringToHash("IsWalking");
 
     [Header("References")]
     [SerializeField] private Transform player;
+
+    [Header("Default Patrol Points (Zone 0)")]
     [SerializeField] private Transform[] patrolPoints;
 
     [Header("Audio")]
@@ -63,10 +67,55 @@ public class NewMonoBehaviourScript : MonoBehaviour
     private bool playerInCone = false;
     private bool hasPlayedInvestigateSound = false;
 
+    // -------------------------
+    // ZONE SYSTEM
+    // -------------------------
+    public int currentZoneIndex = 0;
+    public Transform[] currentPatrolPoints;
+
+    public void SwitchToZone(int zoneIndex, Transform[] newPoints)
+    {
+        currentZoneIndex = zoneIndex;
+        currentPatrolPoints = newPoints;
+
+        if (currentPatrolPoints == null || currentPatrolPoints.Length == 0)
+            return;
+
+        // Join the new zone at the closest patrol point
+        int closest = 0;
+        float bestDist = float.MaxValue;
+
+        for (int i = 0; i < currentPatrolPoints.Length; i++)
+        {
+            float d = Vector3.Distance(transform.position, currentPatrolPoints[i].position);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                closest = i;
+            }
+        }
+
+        patrolIndex = closest;
+
+        agent.isStopped = false;
+        agent.ResetPath();
+        StartCoroutine(SetDestinationNextFrame(currentPatrolPoints[patrolIndex].position));
+
+        Debug.Log("Enemy switched to zone " + zoneIndex);
+    }
+
+    private IEnumerator SetDestinationNextFrame(Vector3 pos)
+    {
+        yield return null;
+        agent.SetDestination(pos);
+    }
+
+    // -------------------------
+
     public int GetActualTargetIndex()
     {
         if (isWaiting)
-            return (patrolIndex + patrolPoints.Length - 1) % patrolPoints.Length;
+            return (patrolIndex + currentPatrolPoints.Length - 1) % currentPatrolPoints.Length;
 
         return patrolIndex;
     }
@@ -105,16 +154,20 @@ public class NewMonoBehaviourScript : MonoBehaviour
         agent.autoBraking = false;
         agent.acceleration = 999f;
         agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
-        agent.stoppingDistance = 0f;
+        agent.stoppingDistance = stopAtDistance;
 
-        if (PlayerRespawn.restoredFromCheckpoint)
+        // Default zone = 0
+        currentPatrolPoints = patrolPoints;
+
+        if (!PlayerRespawn.restoredFromCheckpoint)
         {
-            FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
-            return;
+            patrolIndex = 0;
+            GoToNextPatrolPoint();
         }
-
-        patrolIndex = 0;
-        GoToNextPatrolPoint();
+        else
+        {
+            // On checkpoint restore we’ll rejoin patrol via RestoreSnapshot
+        }
 
         FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
     }
@@ -287,12 +340,27 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void Patrol()
     {
+        investigateTimer = 0f;
+
+
         agent.isStopped = false;
 
-        if (isWaiting) return;
+        // Safety: if something went wrong with the path, rebuild it
+        if (agent.hasPath && float.IsInfinity(agent.remainingDistance))
+        {
+            agent.ResetPath();
+            agent.SetDestination(currentPatrolPoints[patrolIndex].position);
+            return;
+        }
 
-        if (!agent.pathPending && agent.remainingDistance <= stopAtDistance)
-            StartCoroutine(WaitAtPatrolPoint());
+        if (isWaiting)
+            return;
+
+        // Use stoppingDistance to detect arrival
+        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f)
+        {
+            StartCoroutine(WaitAtPatrolPoint());s
+        }
     }
 
     private IEnumerator WaitAtPatrolPoint()
@@ -302,23 +370,27 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
         yield return new WaitForSeconds(patrolWaitTime);
 
-        patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
+        patrolIndex = (patrolIndex + 1) % currentPatrolPoints.Length;
 
         agent.isStopped = false;
-        GoToNextPatrolPoint();
+        agent.ResetPath();
+        yield return null;
+
+        agent.SetDestination(currentPatrolPoints[patrolIndex].position);
+
         isWaiting = false;
     }
 
     private void GoToClosestPatrolPoint()
     {
-        if (patrolPoints.Length == 0) return;
+        if (currentPatrolPoints == null || currentPatrolPoints.Length == 0) return;
 
         int closest = 0;
         float bestDist = float.MaxValue;
 
-        for (int i = 0; i < patrolPoints.Length; i++)
+        for (int i = 0; i < currentPatrolPoints.Length; i++)
         {
-            float d = Vector3.Distance(transform.position, patrolPoints[i].position);
+            float d = Vector3.Distance(transform.position, currentPatrolPoints[i].position);
             if (d < bestDist)
             {
                 bestDist = d;
@@ -327,19 +399,17 @@ public class NewMonoBehaviourScript : MonoBehaviour
         }
 
         patrolIndex = closest;
-        agent.SetDestination(patrolPoints[patrolIndex].position);
+        agent.isStopped = false;
+        agent.ResetPath();
+        agent.SetDestination(currentPatrolPoints[patrolIndex].position);
     }
 
     private void GoToNextPatrolPoint()
     {
-        if (patrolPoints.Length == 0) return;
-        agent.SetDestination(patrolPoints[patrolIndex].position);
-    }
-
-    private void GoToSavedPatrolPoint()
-    {
-        if (patrolPoints.Length == 0) return;
-        agent.SetDestination(patrolPoints[patrolIndex].position);
+        if (currentPatrolPoints == null || currentPatrolPoints.Length == 0) return;
+        agent.isStopped = false;
+        agent.ResetPath();
+        agent.SetDestination(currentPatrolPoints[patrolIndex].position);
     }
 
     private void UpdateAnimations()
@@ -409,34 +479,47 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void Investigate()
     {
-        if (!agent.pathPending && agent.remainingDistance <= stopAtDistance)
+        investigateTimer += Time.deltaTime;
+
+        // Safety timeout: never get stuck in Investigating
+        if (investigateTimer > 2f)
         {
+            investigateTimer = 0f;
             state = EnemyState.Patrolling;
-            chaseStarted = false;
+            GoToClosestPatrolPoint();
+            return;
+        }
 
-            hasPlayedInvestigateSound = false;
-
-            if (chaseMusic.isPlaying)
-                chaseMusic.Stop();
-
-            FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
-
+        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f)
+        {
+            investigateTimer = 0f;
+            state = EnemyState.Patrolling;
             GoToClosestPatrolPoint();
         }
     }
 
+
+    // -------------------------
+    // SNAPSHOT RESTORE (SIMPLIFIED)
+    // -------------------------
     public void RestoreSnapshot(EnemySnapshot snap)
     {
         StopAllCoroutines();
 
+        // Position
         agent.Warp(snap.position);
         transform.position = snap.position;
-        patrolIndex = snap.patrolIndex;
 
+        // Force clean state after respawn
         state = EnemyState.Patrolling;
-        chaseStarted = false;
+        isWaiting = false;
         playerInCone = false;
+        chaseStarted = false;
         hasPlayedInvestigateSound = false;
+
+        if (loseRoutine != null) StopCoroutine(loseRoutine);
+        loseRoutine = null;
+
 
         if (chaseMusic.isPlaying) chaseMusic.Stop();
         if (investigateSound.isPlaying) investigateSound.Stop();
@@ -447,6 +530,46 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
         FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
 
-        GoToSavedPatrolPoint();
+        // Restore zone patrol points
+        currentZoneIndex = snap.zoneIndex;
+
+        var zones = Object.FindObjectsByType<PatrolZone>(FindObjectsSortMode.None);
+        foreach (var z in zones)
+        {
+            if (z.zoneIndex == currentZoneIndex)
+            {
+                currentPatrolPoints = z.patrolPoints;
+                break;
+            }
+        }
+
+        // Rejoin patrol via closest point in that zone
+        StartCoroutine(RestorePatrolNextFrame());
+    }
+
+    private IEnumerator RestorePatrolNextFrame()
+    {
+        yield return null;
+
+        if (currentPatrolPoints != null && currentPatrolPoints.Length > 0)
+        {
+            int closest = 0;
+            float bestDist = float.MaxValue;
+
+            for (int i = 0; i < currentPatrolPoints.Length; i++)
+            {
+                float d = Vector3.Distance(transform.position, currentPatrolPoints[i].position);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    closest = i;
+                }
+            }
+
+            patrolIndex = closest;
+            agent.isStopped = false;
+            agent.ResetPath();
+            agent.SetDestination(currentPatrolPoints[patrolIndex].position);
+        }
     }
 }

@@ -11,13 +11,6 @@ public class CheckpointSnapshot
     public List<string> collectedPickups = new List<string>();
 }
 
-public class EnemySnapshot
-{
-    public Vector3 position;
-    public int patrolIndex;
-    public EnemyState state;
-}
-
 public class TrapSnapshot
 {
     public bool triggered;
