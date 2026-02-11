@@ -359,7 +359,7 @@ public class NewMonoBehaviourScript : MonoBehaviour
         // Use stoppingDistance to detect arrival
         if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f)
         {
-            StartCoroutine(WaitAtPatrolPoint());s
+            StartCoroutine(WaitAtPatrolPoint());
         }
     }
 
