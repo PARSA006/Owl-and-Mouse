@@ -226,7 +226,6 @@ MonoBehaviour:
   playerMask:
     serializedVersion: 2
     m_Bits: 8
-  enemyAI: {fileID: 7366158020874794999}
 --- !u!1 &8443876911129205609
 GameObject:
   m_ObjectHideFlags: 0
@@ -339,7 +338,6 @@ MonoBehaviour:
   playerMask:
     serializedVersion: 2
     m_Bits: 8
-  enemyAI: {fileID: 7366158020874794999}
 --- !u!1001 &3915336310424284870
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -426,14 +424,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 9135542497663360004, guid: d389d40701106764584885d5817490ec, type: 3}
   m_PrefabInstance: {fileID: 3915336310424284870}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7366158020874794999 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5796071216605681969, guid: d389d40701106764584885d5817490ec, type: 3}
-  m_PrefabInstance: {fileID: 3915336310424284870}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 163a707a7d05a57409e6743cfeaa368b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NewMonoBehaviourScript

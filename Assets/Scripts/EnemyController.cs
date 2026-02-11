@@ -75,6 +75,8 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     public void SwitchToZone(int zoneIndex, Transform[] newPoints)
     {
+        Debug.Log("Zone " + zoneIndex + " has " + currentPatrolPoints.Length + " patrol points.");
+
         currentZoneIndex = zoneIndex;
         currentPatrolPoints = newPoints;
 
