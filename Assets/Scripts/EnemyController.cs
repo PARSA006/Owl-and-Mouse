@@ -148,6 +148,9 @@ public class NewMonoBehaviourScript : MonoBehaviour
 
     private void Start()
     {
+        agent.updatePosition = false;
+        agent.updateRotation = false;
+
         TryFindPlayer();
 
         agent.speed = patrolSpeed;
@@ -172,10 +175,71 @@ public class NewMonoBehaviourScript : MonoBehaviour
         }
 
         FadeConeToColor(new Color(1f, 1f, 0f, 0.25f));
+
     }
+
+    private Vector3 lastHorizontalDir = Vector3.zero;
 
     private void Update()
     {
+        // ---------------------------
+        // FLYING MOVEMENT (HORIZONTAL)
+        // ---------------------------
+
+        if (agent.hasPath)
+        {
+            Vector3 target = agent.steeringTarget;
+
+            // Horizontal direction only
+            Vector3 horizontalDir = new Vector3(
+                target.x - transform.position.x,
+                0f,
+                target.z - transform.position.z
+            ).normalized;
+
+            lastHorizontalDir = horizontalDir;
+
+            // Move horizontally like a flying creature
+            transform.position += horizontalDir * agent.speed * Time.deltaTime;
+
+            // ---------------------------
+            // FLYING MOVEMENT (VERTICAL)
+            // ---------------------------
+
+            float desiredHeight;
+
+            if (state == EnemyState.Following)
+            {
+                // Chase height follows the player
+                desiredHeight = player.position.y + 1.5f;
+            }
+            else
+            {
+                // Patrol height follows patrol point
+                desiredHeight = currentPatrolPoints[patrolIndex].position.y;
+            }
+
+            float verticalSpeed = 3f;
+
+            Vector3 pos = transform.position;
+            pos.y = Mathf.Lerp(pos.y, desiredHeight, Time.deltaTime * verticalSpeed);
+            transform.position = pos;
+
+            // ---------------------------
+            // FLYING ROTATION
+            // ---------------------------
+
+            if (horizontalDir.sqrMagnitude > 0.01f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(horizontalDir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 3f);
+            }
+        }
+
+        // ---------------------------
+        // AI LOGIC (UNCHANGED)
+        // ---------------------------
+
         if (player == null)
         {
             TryFindPlayer();
@@ -205,13 +269,10 @@ public class NewMonoBehaviourScript : MonoBehaviour
                 break;
         }
 
-        if (state == EnemyState.Following)
-            RotateTowardPlayer();
-        else
-            RotateTowardMovementDirection();
-
         UpdateAnimations();
     }
+
+
 
     private void TryFindPlayer()
     {
@@ -230,15 +291,6 @@ public class NewMonoBehaviourScript : MonoBehaviour
         if (dir.sqrMagnitude > 0.01f)
         {
             Quaternion target = Quaternion.LookRotation(dir);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * Time.deltaTime);
-        }
-    }
-
-    private void RotateTowardMovementDirection()
-    {
-        if (agent.velocity.sqrMagnitude > 0.1f)
-        {
-            Quaternion target = Quaternion.LookRotation(agent.velocity.normalized);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * Time.deltaTime);
         }
     }
@@ -421,10 +473,11 @@ public class NewMonoBehaviourScript : MonoBehaviour
         bool walking =
             state == EnemyState.Following ||
             state == EnemyState.Investigating ||
-            agent.velocity.sqrMagnitude > 0.01f;
+            lastHorizontalDir.sqrMagnitude > 0.01f;
 
         animator.SetBool(IsWalking, walking);
     }
+
 
     private void FadeConeToColor(Color target)
     {
