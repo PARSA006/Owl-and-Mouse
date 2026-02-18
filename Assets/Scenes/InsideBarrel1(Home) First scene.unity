@@ -9575,7 +9575,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::nextscene
   sceneName: Barn
   requiredStrawberries: 0
-  teleportSpawnPosition: {x: 198, y: -2.3, z: -50}
+  teleportSpawnPosition: {x: 198.2379, y: 1.049, z: -55.829}
 --- !u!65 &915480114
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9717,7 +9717,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3935628262453406370, guid: 90f3a87955e28784eb70abb74a8c8b31, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.53
+      value: 0.63
       objectReference: {fileID: 0}
     - target: {fileID: 3935628262453406370, guid: 90f3a87955e28784eb70abb74a8c8b31, type: 3}
       propertyPath: m_LocalPosition.z
