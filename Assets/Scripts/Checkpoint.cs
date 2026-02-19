@@ -41,6 +41,10 @@ public static class Checkpoint
         {
             inv.strawberries = lastSnapshot.strawberryCount;
             Debug.Log("RESTORE: Strawberry count restored to " + inv.strawberries);
+
+            // ⭐ NEW: Update HUD after restoring inventory
+            if (StrawberryHUD.Instance != null)
+                StrawberryHUD.Instance.SetCollected(inv.strawberries);
         }
 
         // -------------------------

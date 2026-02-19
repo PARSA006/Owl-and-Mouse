@@ -25,9 +25,6 @@ public class StrawberryPickup : MonoBehaviour
         // Ensure the GameObject name matches the pickupID
         gameObject.name = pickupID;
 
-        // Update HUD total (if HUD exists)
-        if (StrawberryHUD.Instance != null)
-            StrawberryHUD.Instance.SetTotal(AllPickupIDs.Count);
     }
 
 

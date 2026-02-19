@@ -31,4 +31,10 @@ public class StrawberryHUD : MonoBehaviour
     {
         counterText.text = collected + " / " + total;
     }
+    public void SetCollected(int amount)
+    {
+        collected = amount;
+        UpdateText();
+    }
+
 }

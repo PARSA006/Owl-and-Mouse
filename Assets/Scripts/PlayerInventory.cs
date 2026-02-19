@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class PlayerInventory : MonoBehaviour
@@ -20,7 +20,13 @@ public class PlayerInventory : MonoBehaviour
                 ? SaveManager.LoadStrawberries()
                 : 0;
         }
+
+        // ⭐ IMPORTANT: Update HUD AFTER loading saved strawberries
+        if (StrawberryHUD.Instance != null)
+            StrawberryHUD.Instance.SetCollected(strawberries);
     }
+
+
 
     public void AddStrawberries(int amount)
     {
