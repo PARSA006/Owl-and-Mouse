@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class NextScene : MonoBehaviour
@@ -18,11 +18,15 @@ public class NextScene : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Player")) return;
+        if (!other.CompareTag("Player"))
+            return;
 
         if (playerInventory != null && playerInventory.strawberries >= requiredStrawberries)
         {
+            // ⭐ Store teleport position for the next scene
             TeleportData.SetTeleportPosition(teleportSpawnPosition);
+
+            // ⭐ Load the next scene
             SceneManager.LoadScene(sceneName);
         }
         else
