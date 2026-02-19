@@ -9,6 +9,10 @@ public class StrawberryPickup : MonoBehaviour
     [SerializeField] private string pickupID;
     [SerializeField] private int amount = 1;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip pickupSound;
+    [SerializeField] private float soundVolume = 1f;
+
     public string PickupID => pickupID;
 
     private bool collected = false;
@@ -18,8 +22,7 @@ public class StrawberryPickup : MonoBehaviour
         // Register this pickup ID globally
         AllPickupIDs.Add(pickupID);
 
-        // IMPORTANT: Ensure the GameObject name matches the pickupID
-        // so SavePoint can detect if it exists
+        // Ensure the GameObject name matches the pickupID
         gameObject.name = pickupID;
     }
 
@@ -46,11 +49,14 @@ public class StrawberryPickup : MonoBehaviour
 
         collected = true;
 
+        // Add strawberries to inventory
         inv.AddStrawberries(amount);
 
-        // ❌ DO NOT SAVE HERE
-        // SavePoint will save it when the checkpoint is reached
+        // Play pickup sound at this position
+        if (pickupSound != null)
+            AudioSource.PlayClipAtPoint(pickupSound, transform.position, soundVolume);
 
+        // Destroy the strawberry object
         Destroy(gameObject);
     }
 }

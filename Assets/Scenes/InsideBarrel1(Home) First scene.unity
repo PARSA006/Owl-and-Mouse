@@ -9541,6 +9541,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c498fb8cd7782b447874e78c1495e11e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
+--- !u!1 &852583688
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 852583690}
+  - component: {fileID: 852583689}
+  m_Layer: 0
+  m_Name: GaneResetter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &852583689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 852583688}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 455e03c3f1a69b441933b643a4f0b4d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ResetOnKey
+  firstSceneName: PlayGround2
+--- !u!4 &852583690
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 852583688}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.19179, y: 8.92386, z: -20.13386}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &915480112
 GameObject:
   m_ObjectHideFlags: 0
@@ -9717,11 +9762,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3935628262453406370, guid: 90f3a87955e28784eb70abb74a8c8b31, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.95
+      value: 1.158
       objectReference: {fileID: 0}
     - target: {fileID: 3935628262453406370, guid: 90f3a87955e28784eb70abb74a8c8b31, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 0.299
       objectReference: {fileID: 0}
     - target: {fileID: 3935628262453406370, guid: 90f3a87955e28784eb70abb74a8c8b31, type: 3}
       propertyPath: m_LocalRotation.w
@@ -10848,3 +10893,4 @@ SceneRoots:
   - {fileID: 733477908}
   - {fileID: 1891986197}
   - {fileID: 915480117}
+  - {fileID: 852583690}
