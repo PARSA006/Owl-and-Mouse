@@ -1,22 +1,34 @@
 using UnityEngine;
+using UnityEngine.Video;
 
-public class CutsceneHUDControl : MonoBehaviour
+public class CutsceneController : MonoBehaviour
 {
-    [SerializeField] private GameObject hudCanvas;   // Assign your HUD Canvas here
-    [SerializeField] private float cutsceneDuration = 5f; // Length of your cutscene
+    [SerializeField] private VideoPlayer videoPlayer;
+    [SerializeField] private PlayerMovement playerMovement; // assign your player here
 
     private void Start()
     {
-        if (hudCanvas != null)
-            hudCanvas.SetActive(false);
+        // Disable player movement during cutscene
+        if (playerMovement != null)
+            playerMovement.enabled = false;
 
-        // Re-enable HUD after cutscene
-        Invoke(nameof(ShowHUD), cutsceneDuration);
+        // Listen for video end
+        if (videoPlayer != null)
+            videoPlayer.loopPointReached += OnVideoFinished;
     }
 
-    private void ShowHUD()
+    private void OnVideoFinished(VideoPlayer vp)
     {
-        if (hudCanvas != null)
-            hudCanvas.SetActive(true);
+        EndCutscene();
+    }
+
+    private void EndCutscene()
+    {
+        // Enable player movement
+        if (playerMovement != null)
+            playerMovement.enabled = true;
+
+        // Hide cutscene canvas
+        gameObject.SetActive(false);
     }
 }

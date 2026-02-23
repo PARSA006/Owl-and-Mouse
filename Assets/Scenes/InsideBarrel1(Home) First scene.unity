@@ -9585,6 +9585,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c498fb8cd7782b447874e78c1495e11e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
+--- !u!114 &746519342 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5026109774743762645, guid: 90f3a87955e28784eb70abb74a8c8b31, type: 3}
+  m_PrefabInstance: {fileID: 1157257146}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 746519340}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79906606c5e5caf43a09a37b8ea640a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MouseMovement
 --- !u!1 &848146651
 GameObject:
   m_ObjectHideFlags: 0
@@ -11143,8 +11154,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b0a1f0f6eb367247bffeef74419759f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CutsceneHUDControl
-  hudCanvas: {fileID: 1413891386}
-  cutsceneDuration: 5
+  videoPlayer: {fileID: 1413891387}
+  playerMovement: {fileID: 746519342}
 --- !u!4 &1710982077
 Transform:
   m_ObjectHideFlags: 0
