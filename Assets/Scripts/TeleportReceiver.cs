@@ -1,23 +1,39 @@
 using UnityEngine;
+using System.Collections;
 
 public class TeleportReceiver : MonoBehaviour
 {
     private void Start()
     {
-        if (TeleportData.useTeleportPosition)
+        StartCoroutine(ApplyTeleportWhenReady());
+    }
+
+    private IEnumerator ApplyTeleportWhenReady()
+    {
+        if (!TeleportData.useTeleportPosition)
+            yield break;
+
+        // Wait until PlayerMovement exists
+        PlayerMovement player = null;
+        while (player == null)
         {
-            var player = FindFirstObjectByType<PlayerMovement>();
-            if (player != null)
-            {
-                var controller = player.GetComponent<CharacterController>();
-                if (controller != null) controller.enabled = false;
-
-                player.transform.position = TeleportData.spawnPosition;
-
-                if (controller != null) controller.enabled = true;
-            }
-
-            TeleportData.Clear();
+            player = FindFirstObjectByType<PlayerMovement>();
+            yield return null;
         }
+
+        // Disable controller before teleport
+        var controller = player.GetComponent<CharacterController>();
+        if (controller != null)
+            controller.enabled = false;
+
+        // Apply teleport
+        player.transform.position = TeleportData.spawnPosition;
+
+        // Re-enable controller
+        if (controller != null)
+            controller.enabled = true;
+
+        // Clear teleport data
+        TeleportData.Clear();
     }
 }
