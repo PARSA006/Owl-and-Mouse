@@ -7,4 +7,9 @@ public class BootstrapLoader : MonoBehaviour
     {
         SceneManager.LoadScene("InsideBarrel1(Home) First scene");
     }
+    private void Awake()
+    {
+        SaveManager.DeleteSave();
+        PlayerPrefs.DeleteAll();
+    }
 }

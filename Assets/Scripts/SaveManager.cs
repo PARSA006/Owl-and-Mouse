@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using System;
 
 
 public static class SaveManager
@@ -87,4 +88,11 @@ public static class SaveManager
         PlayerPrefs.DeleteAll();
         PlayerPrefs.Save();
     }
+
+    public static void DeleteSave()
+    {
+        PlayerPrefs.DeleteAll();
+        PlayerPrefs.Save();
+    }
+
 }
